@@ -8,7 +8,7 @@ namespace Quartzoto {
 
     class Program {
 
-        const int SIZE = 4;
+        const int SIZE = 5;
 
         static int[,] grid;
         static int[] piecesLefts;
@@ -24,7 +24,7 @@ namespace Quartzoto {
         static void Initialize() {
             // Initialise la liste des pièces disponibles (la 'pioche').
             piecesLefts = new int[SIZE * SIZE];
-            for (int k = 0; k < 16; piecesLefts[k] = k++)
+            for (int k = 0; k < SIZE * SIZE; piecesLefts[k] = k++)
                 ;
 
             // Initialise la grille à `0xFF..F` (-1).
@@ -70,7 +70,7 @@ namespace Quartzoto {
 
             // Finalement affiche les indicateur de colonnes (1, 2, 3 et 4 si TAILLE = 4).
             r += "\n   ";
-            for (int k = 1; k < SIZE + 1; r += k++ + new String(' ', 4))
+            for (int k = 1; k < SIZE + 1; r += k++ + new String(' ', SIZE))
                 ;
             
             Console.Clear();
@@ -161,7 +161,7 @@ namespace Quartzoto {
         static String PlayGame(String player1, String player2="Computer", bool hardComputer=false) {
             // Si un des joueurs s'appel "Computer", il est remplacer par un ordinateur.
             String[] players = new String[] { player1, player2 };
-            int player = 1; // Le premier joueur est le joueur `player1` (indice 0).
+            int player = 0; // Le premier joueur est le joueur `player1` (indice 0).
 
             int storedPieceIndex = -1;
 
@@ -171,6 +171,7 @@ namespace Quartzoto {
 
             do {
                 // Affiche le plateau.
+                currentPlayer = players[player];
                 DisplayGrid();
 
                 // Au premier tours, le joueur 1 donne une pièce au joueur 2.
