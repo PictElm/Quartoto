@@ -8,7 +8,8 @@ namespace Quartzoto {
 
     class Program {
 
-        const int SIZE = 5;
+        const int SIZE = 4;
+        const int TILE_SIZE = 1;
 
         static int[,] grid;
         static int[] piecesLefts;
@@ -17,7 +18,7 @@ namespace Quartzoto {
 
         static void Main(string[] args) {
             Initialize(); // Initialise.
-            String winner = PlayGame("Alexa", "Michel"); // Fait une partie entre "Alexa" et "Davide".
+            String winner = PlayGame("Alexa", "Patrick"); // Fait une partie entre "Alexa" et "Patrick".
             Console.WriteLine(winner + " wins!");
         }
 
@@ -34,47 +35,41 @@ namespace Quartzoto {
                     grid[i, j] = -1;
         }
 
-        static String DetailPiece(int piece, int size=SIZE) {
-            String r = "";
-
-            // Détail les caractéristiques de la pièce.
-            for (int k = 0; k < size; k++)
-                r += piece == -1 ? " " : (piece & 1 << k) != 0 ? "☺" : "☻";
-
-            return r;
+        static String[] DetailPiece(int piece) {
+            return new String[] { "µ" };
         }
 
         static void DisplayGrid(params int[] higlighted) {
-            String r = "Player: " + currentPlayer + "\n";
+            Console.Clear();
 
-            for (int i = 0; i < 2 * SIZE + 1; i++) {
-                // Les lignes avec séparateurs n'ont pas d'indicateurs: elle commences par 2 espaces.
-                if (i % 2 == 0)
-                    r += "  ";
-                // Sinon affiche les indicateur de lignes (a, b, c et d si TAILLE = 4).
-                else
-                    r += (char)('a' + i / 2) + " ";
+            String[,][] lines = new String[SIZE, SIZE][];
+            ConsoleColor[,] colors = new ConsoleColor[SIZE, SIZE];
 
-                for (int j = 0; j < 2 * SIZE + 1; j++) {
-                    // Une ligne sur deux est un séparateur (+----+----+--..).
-                    if (i % 2 == 0)
-                        r += j % 2 == 0 ? "+" : new String('-', SIZE);
-                    else
-                        // Une colonne sur deux est un séparateur (|blab|coco|pl..).
-                        r += j % 2 == 0 ? "|" : DetailPiece(grid[i / 2, j / 2]);
+            for (int i = 0; i < SIZE; i++)
+                for (int j = 0; j < SIZE; j++) {
+                    lines[i, j] = DetailPiece(grid[i, j]);
+                    colors[i, j] = grid[i, j] == -1 ? ConsoleColor.Gray : (grid[i, j] & 1) == 0 ? ConsoleColor.White : ConsoleColor.Black;
                 }
 
-                // Retour à la ligne.
-                r += "\n";
-            }
+            Console.WriteLine("Player: " + currentPlayer + "\n");
+            Console.WriteLine("  " + new String('-', SIZE * (TILE_SIZE + 1)));
 
-            // Finalement affiche les indicateur de colonnes (1, 2, 3 et 4 si TAILLE = 4).
-            r += "\n   ";
-            for (int k = 1; k < SIZE + 1; r += k++ + new String(' ', SIZE))
-                ;
-            
-            Console.Clear();
-            Console.WriteLine(r);
+            for (int j = 0; j < SIZE; j++) {
+                for (int k = 0; k < TILE_SIZE; k++) {
+                    Console.BackgroundColor = ConsoleColor.White;
+                    Console.ForegroundColor = ConsoleColor.Black;
+                    Console.Write(k == 0 ? (char)('a' + j) : ' ');
+                    Console.Write(" ");
+                    Console.BackgroundColor = ConsoleColor.Black;
+
+                    for (int i = 0; i < SIZE; i++) {
+                        Console.ForegroundColor = colors[i, j];
+                        Console.Write("|" + lines[i, j][k]);
+                    }
+                    Console.WriteLine("|");
+                }
+                Console.WriteLine("  " + new String('-', SIZE * (TILE_SIZE + 1)));
+            }
         }
 
         static int[] ChooseTile() {
