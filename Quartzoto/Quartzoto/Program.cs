@@ -17,7 +17,7 @@ namespace Quartzoto {
 
         static void Main(string[] args) {
             Initialize(); // Initialise.
-            String winner = PlayGame("Alexa", "Davide"); // Fait une partie entre "Alexa" et "Davide".
+            String winner = PlayGame("Alexa", "Michel"); // Fait une partie entre "Alexa" et "Davide".
             Console.WriteLine(winner + " wins!");
         }
 
