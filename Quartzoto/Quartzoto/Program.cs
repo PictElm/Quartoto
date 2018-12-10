@@ -10,8 +10,8 @@ namespace Quartzoto {
 
         const int SIZE = 4;
 
-        static int[,] grid = new int[SIZE, SIZE];
-        static int[] piecesLefts = new int[16];
+        static int[,] grid;
+        static int[] piecesLefts;
 
         static void Main(string[] args) {
             Initialize();
@@ -20,10 +20,23 @@ namespace Quartzoto {
         }
 
         static void Initialize() {
-            for (int k = 0; k < 8; k++) {
-                piecesLefts[k] = k + 1;
-                piecesLefts[8 + k] = (k + 1) << 4;
-            }
+            piecesLefts = new int[SIZE * SIZE];
+            for (int k = 0; k < 16; piecesLefts[k] = k++)
+                ;
+
+            grid = new int[SIZE, SIZE];
+            for (int i = 0; i < SIZE; i++)
+                for (int j = 0; j < SIZE; j++)
+                    grid[i, j] = -1;
+        }
+
+        static String DetailPiece(int piece) {
+            String r = "";
+
+            for (int k = 0; k < SIZE; k++)
+                r += piece == -1 ? " " : (piece & 1 << k) != 0 ? "☺" : "☻";
+
+            return r;
         }
 
         static void DisplayGrid(params int[] higlighted) {
@@ -42,11 +55,9 @@ namespace Quartzoto {
                     // Une ligne sur deux est un séparateur (+----+----+--..).
                     if (i % 2 == 0)
                         r += j % 2 == 0 ? "+" : new String('-', tileLength);
-                    else {
-                        String tmp = j % 2 == 0 ? "" : grid[i / 2, j / 2].ToString();
+                    else
                         // Une colonne sur deux est un séparateur (|blab|coco|fo..).
-                        r += j % 2 == 0 ? "|" : (tmp + new String(' ', tileLength - tmp.Length));
-                    }
+                        r += j % 2 == 0 ? "|" : DetailPiece(grid[i / 2, j / 2]);
                 }
 
                 // Retour à la ligne.
@@ -59,12 +70,6 @@ namespace Quartzoto {
                 ;
 
             Console.WriteLine(r);
-        }
-
-        static bool IsFinished(int[] lastPlacePosXY, int turnCounter, bool testForSquares=false) {
-            int flags = -1;
-
-            return flags != 0;
         }
 
         static int[] ChooseTile() {
@@ -80,6 +85,11 @@ namespace Quartzoto {
         }
 
         static int ChoosePiece() {
+            String tmp = "\n";
+            for (int k = 0; k < piecesLefts.Length; tmp+= "\t" + (k + 1) + ":\t" + DetailPiece(piecesLefts[k++]) + "\n")
+                ;
+            Console.WriteLine("Pieces lefts: " + tmp);
+
             Console.WriteLine("Asking for index in {0}, {1}: ", 1, piecesLefts.Length);
             int input = -1;
 
@@ -96,6 +106,28 @@ namespace Quartzoto {
             for (int k = 0; k < tmp.Length; k++)
                 tmp[k] = piecesLefts[k < pieceIndex ? k : k + 1];
             piecesLefts = tmp;
+        }
+
+        static bool IsFinished(int[] lastPlacePosXY, int turnCounter, bool testForSquares=false) {
+            int flagsLine = ~(-1 << SIZE * SIZE);
+            int flagsColumn = ~(-1 << SIZE * SIZE);
+
+            for (int k = 0; k < SIZE; k++) {
+                for (int c = 0; c < SIZE; c++) {
+                    // Test cumulatif sur toute la ligne.
+                    if (grid[k, lastPlacePosXY[0]] != -1) {
+                        flagsLine&= grid[k, lastPlacePosXY[0]] & 1 << c;
+                        flagsLine&= (~grid[k, lastPlacePosXY[0]] & 1 << c) << SIZE;
+                    }
+                    // Test cumulatif sur toute la colonne.
+                    if (grid[lastPlacePosXY[0], k] != -1) {
+                        flagsColumn&= grid[lastPlacePosXY[0], k] & 1 << c;
+                        flagsColumn&= (~grid[lastPlacePosXY[0], k] & 1 << c) << SIZE;
+                    }
+                }
+            }
+
+            return flagsLine + flagsColumn != 0;
         }
 
         static String PlayGame(String[] players, bool secondPlayer=true, bool hardComputer=false) {
