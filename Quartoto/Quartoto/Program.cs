@@ -118,6 +118,10 @@ namespace ProjetInfo
                 // Place la pièce et la retire des disponibles.
                 Jouer(indicePieceSelectionnee, choix[0], choix[1]);
 
+                // Tant que le dernier joueur n'a pas gagner et qu'il reste encore des tours possibles.
+                if (AGagne() || tour++ >= 16 + 1)
+                    break;
+
                 /************************************************
                  * Phase 2: selectionner la pièce à placer après.
                  */
@@ -130,7 +134,7 @@ namespace ProjetInfo
                     Console.Write("Choisir une pièce pour l'autre joueur: ");
 
                     // Tant que l'entrée ne corespond pas a une pièce.
-                    while ((indicePieceSelectionnee = int.Parse(Console.ReadLine())) - 1 < 0
+                    while ((indicePieceSelectionnee = int.Parse(Console.ReadLine()) - 1) < 0
                            || piecesRestantes.Length - 1 < indicePieceSelectionnee)
                         Console.Write("Veuiller entrer une pièce valable: ");
                 }
@@ -143,9 +147,7 @@ namespace ProjetInfo
                     if (indicePieceSelectionnee < 0 || piecesRestantes.Length - 1 < indicePieceSelectionnee)
                         indicePieceSelectionnee = ReflechirPieceSuivante(true);
                 }
-
-                // Tant que le dernier joueur n'a pas gagner et qu'il reste encore des tours possibles.
-            } while (!AGagne() && tour++ < 16 + 1);
+            } while (true);
 
             // A la fin de la boucle, `joueur` est le joueur gagnant, sauf si `tour >= 16 + 1`
             if (tour < 16 + 1) {
@@ -211,7 +213,7 @@ namespace ProjetInfo
             piecesRestantes = temp; //on remplace le tableau précédent par le nouveau
         }
 
-        static public bool AGagne()
+        static public bool AGagne0()
         {
             int[] cptCaracteristiques = new int[4];
 
@@ -220,14 +222,18 @@ namespace ProjetInfo
                 for (int j = 0; j < TAILLE; j++) //Pour chaque colonne dans la ligne i
                 {
                     if (grille[i, j][0] == 'n') { cptCaracteristiques[0]++; } //on incrémente le compteur de caractéristiques pour une des deux possibilités
+                    else { cptCaracteristiques[0]--; }
                     if (grille[i, j][1] == 'g') { cptCaracteristiques[1]++; }
+                    else { cptCaracteristiques[1]--; }
                     if (grille[i, j][2] == 'P') { cptCaracteristiques[2]++; }
+                    else { cptCaracteristiques[2]--; }
                     if (grille[i, j][3] == 'r') { cptCaracteristiques[3]++; }
+                    else { cptCaracteristiques[3]--; }
                 }
             }
             for (int i = 0; i < cptCaracteristiques.Length; i++)
             {
-                if (cptCaracteristiques[i] == 0 || cptCaracteristiques[i] == 4) // si une caractéristique à un compteur de 4 ou de 0, c'est qu'il y au moins un point commun sur toute la ligne
+                if (cptCaracteristiques[i] == -4 || cptCaracteristiques[i] == 4) // si une caractéristique à un compteur de 4 ou de 0, c'est qu'il y au moins un point commun sur toute la ligne
                 {
                     return true;
                 }
@@ -240,14 +246,18 @@ namespace ProjetInfo
                 for (int j = 0; j < TAILLE; j++) // même chose pour les colonnes
                 {
                     if (grille[j, i][0] == 'n') { cptCaracteristiques[0]++; }
+                    else { cptCaracteristiques[0]--; }
                     if (grille[j, i][1] == 'g') { cptCaracteristiques[1]++; }
+                    else { cptCaracteristiques[1]--; }
                     if (grille[j, i][2] == 'P') { cptCaracteristiques[2]++; }
+                    else { cptCaracteristiques[2]--; }
                     if (grille[j, i][3] == 'r') { cptCaracteristiques[3]++; }
+                    else { cptCaracteristiques[3]--; }
                 }
             }
             for (int i = 0; i < cptCaracteristiques.Length; i++)
             {
-                if (cptCaracteristiques[i] == 0 || cptCaracteristiques[i] == 4)
+                if (cptCaracteristiques[i] == -4 || cptCaracteristiques[i] == 4)
                 {
                     return true;
                 }
@@ -257,19 +267,87 @@ namespace ProjetInfo
 
             for (int j = 0; j < TAILLE; j++) // et pour les diagonales
             {
-                if (grille[j, 4 - j][0] == 'n') { cptCaracteristiques[0]++; }
-                if (grille[j, 4 - j][1] == 'g') { cptCaracteristiques[1]++; }
-                if (grille[j, 4 - j][2] == 'P') { cptCaracteristiques[2]++; }
-                if (grille[j, 4 - j][3] == 'r') { cptCaracteristiques[3]++; }
+                if (grille[j, TAILLE - 1 - j][0] == 'n') { cptCaracteristiques[0]++; }
+                else { cptCaracteristiques[0]--; }
+                if (grille[j, TAILLE - 1 - j][1] == 'g') { cptCaracteristiques[1]++; }
+                else { cptCaracteristiques[1]--; }
+                if (grille[j, TAILLE - 1 - j][2] == 'P') { cptCaracteristiques[2]++; }
+                else { cptCaracteristiques[2]--; }
+                if (grille[j, TAILLE - 1 - j][3] == 'r') { cptCaracteristiques[3]++; }
+                else { cptCaracteristiques[3]--; }
             }
             for (int i = 0; i < cptCaracteristiques.Length; i++)
             {
-                if (cptCaracteristiques[i] == 0 || cptCaracteristiques[i] == 4)
+                if (cptCaracteristiques[i] == -4 || cptCaracteristiques[i] == 4)
+                {
+                    Console.WriteLine("coucou");
+                    return true;
+                }
+            }
+
+            cptCaracteristiques = new int[4];
+
+            for (int j = 0; j < TAILLE; j++) // et pour les diagonales
+            {
+                if (grille[j, j][0] == 'n') { cptCaracteristiques[0]++; }
+                else { cptCaracteristiques[0]--; }
+                if (grille[j, j][1] == 'g') { cptCaracteristiques[1]++; }
+                else { cptCaracteristiques[1]--; }
+                if (grille[j, j][2] == 'P') { cptCaracteristiques[2]++; }
+                else { cptCaracteristiques[2]--; }
+                if (grille[j, j][3] == 'r') { cptCaracteristiques[3]++; }
+                else { cptCaracteristiques[3]--; }
+            }
+            for (int i = 0; i < cptCaracteristiques.Length; i++)
+            {
+                if (cptCaracteristiques[i] == -4 || cptCaracteristiques[i] == 4)
                 {
                     return true;
                 }
             }
 
+            return false;
+        }
+
+        static public bool AGagne() {
+            // On va compter les caractériqtiques présentes :
+            // * noire (n) -> +1, sinon -1
+            // * petite (p) -> +1, sinon -1
+            // *...
+            //
+            // si on atteint +4 ou -4, c'est sue le jeux est finit.
+            String references = "nptr";
+
+            int[] compteurLigne = new int[4];
+            int[] compteurColonne = new int[4];
+            int[] compteurDiagonale = new int[4];
+            int[] compteurAntidiagonale = new int[4];
+
+            for (int i = 0; i < TAILLE; i++)
+                for (int k = 0; k < 4; k++) {
+                    for (int j = 0; j < TAILLE && grille[i, j] + grille[j, i] != CASE_VIDE + CASE_VIDE; j++) {
+                        compteurLigne[k]+= grille[i, j][k] == references[k] ? 1 : -1;
+                        compteurColonne[k] += grille[j, i][k] == references[k] ? 1 : -1;
+                    }
+                    if (grille[i, i] != CASE_VIDE)
+                        compteurDiagonale[k]+= grille[i, i][k] == references[k] ? 1 : -1;
+                    if (grille[i, TAILLE-1 - i] != CASE_VIDE)
+                        compteurAntidiagonale[k]+= grille[i, TAILLE-1 - i][k] == references[k] ? 1 : -1;
+
+                    Console.WriteLine("ligne {0}: {0}", k, compteurLigne[k]);
+                    Console.WriteLine("colonne {0}: {0}", k, compteurColonne[k]);
+                    Console.WriteLine("diagonale {0}: {0}", k, compteurDiagonale[k]);
+                    Console.WriteLine("antidiagonale {0}: {0}", k, compteurAntidiagonale[k]);
+
+                    // Si on compte 4 fois la même caractéristique sur..
+                    if (Math.Abs(compteurLigne[k]) == 4 // .. une ligne,..
+                        || Math.Abs(compteurColonne[k]) == 4 // .. une colonne,..
+                        || Math.Abs(compteurDiagonale[k]) == 4 // .. la digaonale,..
+                        || Math.Abs(compteurAntidiagonale[k]) == 4) // .. ou l'antidiagonale,
+                        return true; // c'est que le dernier joueur a gagner.
+                }
+
+            // On a trouver aucune condition gagnante.
             return false;
         }
 
