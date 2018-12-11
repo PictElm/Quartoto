@@ -9,7 +9,15 @@ namespace Quartzoto {
     class Program {
 
         const int SIZE = 4;
-        const int TILE_SIZE = 1;
+        const int TILE_SIZE = 2;
+
+        const ConsoleColor MAIN_BG = ConsoleColor.Black;
+        const ConsoleColor TILE_BG = ConsoleColor.Black;
+
+        const ConsoleColor MAIN_FG = ConsoleColor.White;
+        const ConsoleColor COLOR_1 = ConsoleColor.Blue;
+        const ConsoleColor COLOR_2 = ConsoleColor.Red;
+        const ConsoleColor SELECTED = ConsoleColor.Green;
 
         static int[,] grid;
         static int[] piecesLefts;
@@ -19,7 +27,7 @@ namespace Quartzoto {
         static void Main(string[] args) {
             Initialize(); // Initialise.
             String winner = PlayGame("Alexa", "Patrick"); // Fait une partie entre "Alexa" et "Patrick".
-            Console.WriteLine(winner + " wins!");
+            Println(winner + " wins!", MAIN_BG, ConsoleColor.Yellow);
         }
 
         static void Initialize() {
@@ -39,6 +47,20 @@ namespace Quartzoto {
             return new String[] { "µ" };
         }
 
+        static void Print(Object c, ConsoleColor bg=MAIN_BG, ConsoleColor fg=MAIN_FG) {
+            if (Console.BackgroundColor != bg)
+                Console.BackgroundColor = bg;
+
+            if (Console.ForegroundColor != fg)
+                Console.ForegroundColor = fg;
+
+            Console.Write(c);
+        }
+
+        static void Println(Object c, ConsoleColor bg=MAIN_BG, ConsoleColor fg=MAIN_FG) {
+            Print(c.ToString() + "\n");
+        }
+
         static void DisplayGrid(params int[] higlighted) {
             Console.Clear();
 
@@ -48,40 +70,39 @@ namespace Quartzoto {
             for (int i = 0; i < SIZE; i++)
                 for (int j = 0; j < SIZE; j++) {
                     lines[i, j] = DetailPiece(grid[i, j]);
-                    colors[i, j] = grid[i, j] == -1 ? ConsoleColor.Gray : (grid[i, j] & 1) == 0 ? ConsoleColor.White : ConsoleColor.Black;
+                    if (higlighted.Length == 2 && higlighted[0] == i && higlighted[1] == j)
+                        colors[i, j] = SELECTED;
+                    else
+                        colors[i, j] = grid[i, j] == -1 ? MAIN_FG : (grid[i, j] & 1) == 0 ? COLOR_1 : COLOR_2;
                 }
 
-            Console.WriteLine("Player: " + currentPlayer + "\n");
-            Console.WriteLine("  " + new String('-', SIZE * (TILE_SIZE + 1)));
+            Print("Player: " + currentPlayer + "\n");
+            Println("  " + new String('-', SIZE * (TILE_SIZE + 1) + 1));
 
             for (int j = 0; j < SIZE; j++) {
                 for (int k = 0; k < TILE_SIZE; k++) {
-                    Console.BackgroundColor = ConsoleColor.White;
-                    Console.ForegroundColor = ConsoleColor.Black;
-                    Console.Write(k == 0 ? (char)('a' + j) : ' ');
-                    Console.Write(" ");
-                    Console.BackgroundColor = ConsoleColor.Black;
+                    Print((k == 0 ? (char)('a' + j) : ' ') + " ");
 
                     for (int i = 0; i < SIZE; i++) {
-                        Console.ForegroundColor = colors[i, j];
-                        Console.Write("|" + lines[i, j][k]);
+                        Print("|");
+                        Print(lines[i, j][k], TILE_BG, colors[i, j]);
                     }
-                    Console.WriteLine("|");
+                    Println("|");
                 }
-                Console.WriteLine("  " + new String('-', SIZE * (TILE_SIZE + 1)));
+                Println("  " + new String('-', SIZE * (TILE_SIZE + 1) + 1));
             }
         }
 
         static int[] ChooseTile() {
             // L'entrée doit être de la forme 'a1' pour désigner une case.
-            Console.Write("Asking for XY: ");
+            Print("Asking for XY: ");
             String input = "";
 
             while ((input = Console.ReadLine()).Length < 2 // Si la chaine de caractères est trop courtes,
                 || input[0] < 'a' || 'a' + SIZE < input[0] // ou l'indicateur de ligne est out of range,
                 || input[1] < '1' || '1' + SIZE < input[1] // ou l'indicateur de colonne est out of range,
                 || grid[input[0] - 'a', input[1] - '1'] != -1) // ou la case est utilisée,
-                Console.Write("Not a valide tile; asking for XY:"); // refait la saisie.
+                Print("Not a valide tile; asking for XY:"); // refait la saisie.
 
             return new int[] { input[0] - 'a', input[1] - '1' };
         }
@@ -89,16 +110,20 @@ namespace Quartzoto {
         static int ChoosePiece() {
             // Affiche toute les pièces disponibles.
             String tmp = "\n";
-            for (int k = 0; k < piecesLefts.Length; tmp+= "\t" + (k + 1) + ":\t" + DetailPiece(piecesLefts[k++]) + "\n")
-                ;
-            Console.WriteLine("Pieces lefts: " + tmp);
+            for (int k = 0; k < piecesLefts.Length; k++) {
+                String detail = "";
+                foreach (String line in DetailPiece(piecesLefts[k]))
+                    detail+= "\t\t" + line + "\n";
+                tmp += "\t" + (k + 1) + ":\n" + detail + "\n";
+            }
+            Println("Pieces lefts: " + tmp);
 
-            Console.WriteLine("Asking for index in {0}, {1}: ", 1, piecesLefts.Length);
+            Println(String.Format("Asking for index in {0}, {1}: ", 1, piecesLefts.Length));
             int input = -1;
 
             // Tant que la sasie n'est pas valide (hors de l'intervale [1, `piecesLefts.Length`]), refait la saisie.
             while ((input = int.Parse(Console.ReadLine())) < 0 || input > piecesLefts.Length)
-                Console.Write("Not a valide index; asking for index in {0}, {1}: ", 1, piecesLefts.Length);
+                Print(String.Format("Not a valide index; asking for index in {0}, {1}: ", 1, piecesLefts.Length));
 
             // Array starts at 0.
             return input - 1;
