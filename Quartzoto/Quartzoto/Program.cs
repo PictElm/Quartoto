@@ -9,15 +9,21 @@ namespace Quartzoto {
     class Program {
 
         const int SIZE = 4;
-        const int TILE_SIZE = 2;
+        const int TILE_SIZE = 3;
+        const int EMPTY = -1;
 
         const ConsoleColor MAIN_BG = ConsoleColor.Black;
         const ConsoleColor TILE_BG = ConsoleColor.Black;
 
-        const ConsoleColor MAIN_FG = ConsoleColor.White;
+        const ConsoleColor MAIN_FG = ConsoleColor.Gray;
         const ConsoleColor COLOR_1 = ConsoleColor.Blue;
         const ConsoleColor COLOR_2 = ConsoleColor.Red;
         const ConsoleColor SELECTED = ConsoleColor.Green;
+
+        const int FLAG_IS_COL1 = 1;
+        const int FLAG_IS_SQRE = 2;
+        const int FLAG_IS_TALL = 4;
+        const int FLAG_IS_HOLE = 8;
 
         static int[,] grid;
         static int[] piecesLefts;
@@ -40,11 +46,7 @@ namespace Quartzoto {
             grid = new int[SIZE, SIZE];
             for (int i = 0; i < SIZE; i++)
                 for (int j = 0; j < SIZE; j++)
-                    grid[i, j] = -1;
-        }
-
-        static String[] DetailPiece(int piece) {
-            return new String[] { "µ" };
+                    grid[i, j] = EMPTY;
         }
 
         static void Print(Object c, ConsoleColor bg=MAIN_BG, ConsoleColor fg=MAIN_FG) {
@@ -53,12 +55,36 @@ namespace Quartzoto {
 
             if (Console.ForegroundColor != fg)
                 Console.ForegroundColor = fg;
-
+            
             Console.Write(c);
         }
 
-        static void Println(Object c, ConsoleColor bg=MAIN_BG, ConsoleColor fg=MAIN_FG) {
-            Print(c.ToString() + "\n");
+        static void Println(Object c=null, ConsoleColor bg=MAIN_BG, ConsoleColor fg=MAIN_FG) {
+            if (c == null)
+                Console.WriteLine();
+            else
+                Print(c.ToString() + "\n");
+        }
+
+        static String[] DetailPiece(int piece) {
+            if (piece == EMPTY) {
+                String[] r = new String[TILE_SIZE];
+                for (int k = 0; k < TILE_SIZE; r[k++] = new String(' ', TILE_SIZE))
+                    ;
+                return r;
+            }
+
+            bool sqre = (piece & FLAG_IS_SQRE) != 0;
+            bool tall = (piece & FLAG_IS_TALL) != 0;
+            bool hole = (piece & FLAG_IS_HOLE) != 0;
+
+            String gap = hole ? (tall ? " u_" : "  u̲") : (tall ? "_ _" : " __");
+            String shapeR = sqre ? "[" : "(";
+            String shapeL = sqre ? "]" : ")";
+
+            return new String[] { " " + gap[0] + " ",
+                                  tall ? "" + shapeR + gap[1] + shapeL : " " + gap[1] + " ",
+                                  "" + shapeR + gap[2] + shapeL };
         }
 
         static void DisplayGrid(params int[] higlighted) {
@@ -73,7 +99,7 @@ namespace Quartzoto {
                     if (higlighted.Length == 2 && higlighted[0] == i && higlighted[1] == j)
                         colors[i, j] = SELECTED;
                     else
-                        colors[i, j] = grid[i, j] == -1 ? MAIN_FG : (grid[i, j] & 1) == 0 ? COLOR_1 : COLOR_2;
+                        colors[i, j] = grid[i, j] == EMPTY ? MAIN_FG : (grid[i, j] & FLAG_IS_COL1) == 0 ? COLOR_1 : COLOR_2;
                 }
 
             Print("Player: " + currentPlayer + "\n");
@@ -101,7 +127,7 @@ namespace Quartzoto {
             while ((input = Console.ReadLine()).Length < 2 // Si la chaine de caractères est trop courtes,
                 || input[0] < 'a' || 'a' + SIZE < input[0] // ou l'indicateur de ligne est out of range,
                 || input[1] < '1' || '1' + SIZE < input[1] // ou l'indicateur de colonne est out of range,
-                || grid[input[0] - 'a', input[1] - '1'] != -1) // ou la case est utilisée,
+                || grid[input[0] - 'a', input[1] - '1'] != EMPTY) // ou la case est utilisée,
                 Print("Not a valide tile; asking for XY:"); // refait la saisie.
 
             return new int[] { input[0] - 'a', input[1] - '1' };
@@ -109,14 +135,24 @@ namespace Quartzoto {
 
         static int ChoosePiece() {
             // Affiche toute les pièces disponibles.
-            String tmp = "\n";
-            for (int k = 0; k < piecesLefts.Length; k++) {
-                String detail = "";
-                foreach (String line in DetailPiece(piecesLefts[k]))
-                    detail+= "\t\t" + line + "\n";
-                tmp += "\t" + (k + 1) + ":\n" + detail + "\n";
+            Println("Pieces lefts:");
+
+            String[][] lines = new String[piecesLefts.Length][];
+            ConsoleColor[] colors = new ConsoleColor[piecesLefts.Length];
+
+            for (int p = 0; p < piecesLefts.Length; p++) {
+                lines[p] = DetailPiece(piecesLefts[p]);
+                colors[p] = (piecesLefts[p] & FLAG_IS_COL1) == 0 ? COLOR_1 : COLOR_2;
             }
-            Println("Pieces lefts: " + tmp);
+
+            for (int k = 0; k < TILE_SIZE; k++) {
+                for (int p = 0; p < piecesLefts.Length; p++) {
+                    if (0 < p)
+                        Print(" ");
+                    Print(lines[p][k], TILE_BG, colors[p]);
+                }
+                Println();
+            }
 
             Println(String.Format("Asking for index in {0}, {1}: ", 1, piecesLefts.Length));
             int input = -1;
@@ -150,19 +186,19 @@ namespace Quartzoto {
 
             for (int k = 0; k < SIZE && flagsLine + flagsColumn + flagsDiagonal + flagsAntidiagonal != 0; k++) {
                 // Test cumulatif sur toute la ligne.
-                if (flagsLine != 0 && grid[lastPlacePosXY[0], k] != -1)
+                if (flagsLine != 0 && grid[lastPlacePosXY[0], k] != EMPTY)
                     flagsLine&= ~grid[lastPlacePosXY[0], k] << SIZE | grid[lastPlacePosXY[0], k];
                 else flagsLine = 0;
                 // Test cumulatif sur toute la colonne.
-                if (flagsColumn != 0 && grid[k, lastPlacePosXY[0]] != -1)
+                if (flagsColumn != 0 && grid[k, lastPlacePosXY[0]] != EMPTY)
                     flagsColumn &= ~grid[k, lastPlacePosXY[1]] << SIZE | grid[k, lastPlacePosXY[1]];
                 else flagsColumn = 0;
                 // Test cumulatif sur toute la diagonnale (si la derniere pièce placée est sur la diagonnale).
-                if (flagsDiagonal != 0 && lastPlacePosXY[0] == lastPlacePosXY[1] && grid[k, k] != -1)
+                if (flagsDiagonal != 0 && lastPlacePosXY[0] == lastPlacePosXY[1] && grid[k, k] != EMPTY)
                     flagsDiagonal &= ~grid[k, k] << SIZE | grid[k, k];
                 else flagsDiagonal = 0;
                 // Test cumulatif sur toute l'antidiagonnale (si la derniere pièce placée est sur l'antidiagonnale).
-                if (flagsAntidiagonal != 0 && lastPlacePosXY[0] + lastPlacePosXY[1] == SIZE - 1 && grid[k, SIZE-1 - k] != -1)
+                if (flagsAntidiagonal != 0 && lastPlacePosXY[0] + lastPlacePosXY[1] == SIZE - 1 && grid[k, SIZE-1 - k] != EMPTY)
                     flagsAntidiagonal &= ~grid[k, SIZE-1 - k] << SIZE | grid[k, SIZE-1 - k];
                 else flagsAntidiagonal = 0;
 
