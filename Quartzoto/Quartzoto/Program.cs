@@ -409,27 +409,28 @@ namespace Quartzoto {
 
         ////// La suite du Program concerne l’ordinateur dans une partie //////
 
-        static int CountFeature(int i, int j, String direction, int featureOffset) {
+        static int CountFeature(int i, int j, String direction, int featureOffset, bool featureSwitch) {
             int r = 0;
 
             if (direction == "Line")
-                for (int k = 0; k < SIZE; r += (grid[i + k++, j] & 1 << featureOffset) != 0 ? 1 : 0)
+                for (int k = 0; k < SIZE; r += ((featureSwitch ? ~grid[i + k++, j] : grid[i + k++, j]) & 1 << featureOffset) != 0 ? 1 : 0)
                     ;
 
             else if (direction == "Column")
-                for (int k = 0; k < SIZE; r += (grid[i, j + k++] & 1 << featureOffset) != 0 ? 1 : 0)
+                for (int k = 0; k < SIZE; r += ((featureSwitch ? ~grid[i, j + k++] : grid[i, j + k++]) & 1 << featureOffset) != 0 ? 1 : 0)
                     ;
 
             else if (direction == "Diagonal")
-                for (int k = 0; k < SIZE; r += (grid[k, k++] & 1 << featureOffset) != 0 ? 1 : 0)
+                for (int k = 0; k < SIZE; r += ((featureSwitch ? ~grid[k, k++] : grid[k, k++]) & 1 << featureOffset) != 0 ? 1 : 0)
                     ;
 
             else if (direction == "Antidiagonal")
-                for (int k = 0; k < SIZE; r += (grid[k, SIZE-1 - k++] & 1 << featureOffset) != 0 ? 1 : 0)
+                for (int k = 0; k < SIZE; r += ((featureSwitch ? ~grid[k, SIZE-1 - k++] : grid[k, SIZE-1 - k++]) & 1 << featureOffset) != 0 ? 1 : 0)
                     ;
 
             return r;
         }
+
         static int[] ComputerChooseTile(int pieceToPlace, bool isRandom=true) {
             // Ordinateur en mode aléatoire.
             if (isRandom) {
@@ -440,6 +441,38 @@ namespace Quartzoto {
                 return new int[] { x, y };
             }
 
+            // Essaie de trouver une ligne où 3 pièces partage une caractéristique.
+            // `k` parcour toute les caractéristiques.
+            for (int k = 0; k < SIZE; k++) {
+                for (int i = 0; i < SIZE; i++) {
+
+                    // Pour chaque lignes, compte les 1 en `k`-ème bit, puis les 0.
+                    if (CountFeature(i, 0, "Line", k, false) == SIZE - 1 || CountFeature(i, 0, "Line", k, true) == SIZE - 1)
+                        for (int j = 0; j < SIZE; j++) // Si 3 pièces partage une caractéristique, cherche une case vide.
+                            if (grid[i, j] == EMPTY)
+                                return new int[] { i, j };
+
+                    // Pour chaque colonne.
+                    if (CountFeature(i, 0, "Column", k, false) == SIZE - 1 || CountFeature(i, 0, "Column", k, true) == SIZE - 1)
+                        for (int j = 0; j < SIZE; j++)
+                            if (grid[j, i] == EMPTY)
+                                return new int[] { j, i };
+                }
+
+                // Pour la diagonnale.
+                if (CountFeature(0, 0, "Diagonal", k, false) == SIZE - 1 || CountFeature(0, 0, "Diagonal", k, true) == SIZE - 1)
+                    for (int i = 0; i < SIZE; i++)
+                        if (grid[i, i] == EMPTY)
+                            return new int[] { i, i };
+
+                // Pour la l'antidiagonnale.
+                if (CountFeature(0, 0, "Antidiagonal", k, false) == SIZE - 1 || CountFeature(0, 0, "Antidiagonal", k, true) == SIZE - 1)
+                    for (int j = 0; j < SIZE; j++)
+                        if (grid[j, SIZE-1 - j] == EMPTY)
+                            return new int[] { j, SIZE-1 - j };
+            }
+
+            // S'il n'y a pas de début d'alignement sur 3 cases (ou que la 4-ème cases était prises).
             return ComputerChooseTile(pieceToPlace);
         }
 
