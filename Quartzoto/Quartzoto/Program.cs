@@ -18,7 +18,7 @@ namespace Quartzoto {
         const ConsoleColor MAIN_FG = ConsoleColor.Gray;
         const ConsoleColor COLOR_1 = ConsoleColor.Blue;
         const ConsoleColor COLOR_2 = ConsoleColor.Red;
-        const ConsoleColor SELECTED = ConsoleColor.Green;
+        const ConsoleColor COLOR_SEL = ConsoleColor.Green;
 
         const int FLAG_IS_COL1 = 1;
         const int FLAG_IS_SQRE = 2;
@@ -63,7 +63,7 @@ namespace Quartzoto {
             if (c == null)
                 Console.WriteLine();
             else
-                Print(c.ToString() + "\n");
+                Print(c.ToString() + "\n", bg, fg);
         }
 
         static String[] DetailPiece(int piece) {
@@ -78,7 +78,7 @@ namespace Quartzoto {
             bool tall = (piece & FLAG_IS_TALL) != 0;
             bool hole = (piece & FLAG_IS_HOLE) != 0;
 
-            String gap = hole ? (tall ? " u_" : "  u̲") : (tall ? "_ _" : " __");
+            String gap = hole ? (tall ? " V_" : "  V") : (tall ? "_ _" : " __");
             String shapeR = sqre ? "[" : "(";
             String shapeL = sqre ? "]" : ")";
 
@@ -87,8 +87,9 @@ namespace Quartzoto {
                                   "" + shapeR + gap[2] + shapeL };
         }
 
-        static void DisplayGrid(params int[] higlighted) {
-            Console.Clear();
+        static void DisplayGrid(int pieceToPlace=EMPTY, params int[] highlighted) {
+            if (pieceToPlace != EMPTY) {
+            }
 
             String[,][] lines = new String[SIZE, SIZE][];
             ConsoleColor[,] colors = new ConsoleColor[SIZE, SIZE];
@@ -96,13 +97,15 @@ namespace Quartzoto {
             for (int i = 0; i < SIZE; i++)
                 for (int j = 0; j < SIZE; j++) {
                     lines[i, j] = DetailPiece(grid[i, j]);
-                    if (higlighted.Length == 2 && higlighted[0] == i && higlighted[1] == j)
-                        colors[i, j] = SELECTED;
+                    if (highlighted.Length == 2 && highlighted[0] == i && highlighted[1] == j)
+                        colors[i, j] = COLOR_SEL;
                     else
-                        colors[i, j] = grid[i, j] == EMPTY ? MAIN_FG : (grid[i, j] & FLAG_IS_COL1) == 0 ? COLOR_1 : COLOR_2;
+                        colors[i, j] = grid[i, j] == EMPTY ? MAIN_FG : (grid[i, j] & FLAG_IS_COL1) != 0 ? COLOR_1 : COLOR_2;
                 }
 
-            Print("Player: " + currentPlayer + "\n");
+            String[] lineToPlace = DetailPiece(pieceToPlace);
+            ConsoleColor colorToPlace = (pieceToPlace & FLAG_IS_COL1) != 0 ? COLOR_1 : COLOR_2;
+
             Println("  " + new String('-', SIZE * (TILE_SIZE + 1) + 1));
 
             for (int j = 0; j < SIZE; j++) {
@@ -113,10 +116,48 @@ namespace Quartzoto {
                         Print("|");
                         Print(lines[i, j][k], TILE_BG, colors[i, j]);
                     }
-                    Println("|");
+
+                    if (pieceToPlace != EMPTY && j == SIZE - 2) {
+                        Print("|");
+                        Println(new String(' ', 12) + lineToPlace[k], TILE_BG, colorToPlace);
+                    } else
+                        Println("|");
                 }
                 Println("  " + new String('-', SIZE * (TILE_SIZE + 1) + 1));
             }
+        }
+
+        static void DisplayPiecesLeft(int highlighted=-1)  {
+            // Affiche toute les pièces disponibles.
+            String[][] lines = new String[piecesLefts.Length][];
+            ConsoleColor[] colors = new ConsoleColor[piecesLefts.Length];
+
+            for (int p = 0; p < piecesLefts.Length; p++) {
+                lines[p] = DetailPiece(piecesLefts[p]);
+                colors[p] = (piecesLefts[p] & FLAG_IS_COL1) != 0 ? COLOR_1 : COLOR_2;
+            }
+
+            if (-1 < highlighted)
+                colors[highlighted] = COLOR_SEL;
+
+            for (int k = 0; k < TILE_SIZE; k++) {
+                for (int p = 0; p < piecesLefts.Length; p++) {
+                    if (0 < p)
+                        Print("  ");
+                    Print(lines[p][k], TILE_BG, colors[p]);
+                }
+                Println();
+            }
+        }
+
+        static void DisplayGame(int pieceToPlace=EMPTY, int selectedPiece=-1, params int[] selectedTile) {
+            Console.Clear();
+
+            Print("Player: " + currentPlayer + "\n");
+            DisplayGrid(pieceToPlace, selectedTile);
+
+            Println("Pieces lefts:");
+            DisplayPiecesLeft(selectedPiece);
         }
 
         static int[] ChooseTile() {
@@ -133,36 +174,22 @@ namespace Quartzoto {
             return new int[] { input[0] - 'a', input[1] - '1' };
         }
 
-        static int ChoosePiece() {
-            // Affiche toute les pièces disponibles.
-            Println("Pieces lefts:");
+        static int ChoosePiece(params int[] lastPlacePosXY) {
+            ConsoleKey input = ConsoleKey.Clear;
+            int cursor = 0;
+            
+            DisplayGame(EMPTY, cursor, lastPlacePosXY);
 
-            String[][] lines = new String[piecesLefts.Length][];
-            ConsoleColor[] colors = new ConsoleColor[piecesLefts.Length];
+            while ((input = Console.ReadKey(true).Key) != ConsoleKey.Enter) {
 
-            for (int p = 0; p < piecesLefts.Length; p++) {
-                lines[p] = DetailPiece(piecesLefts[p]);
-                colors[p] = (piecesLefts[p] & FLAG_IS_COL1) == 0 ? COLOR_1 : COLOR_2;
+                if (input == ConsoleKey.RightArrow && cursor < piecesLefts.Length - 1)
+                    DisplayGame(EMPTY, ++cursor, lastPlacePosXY);
+
+                else if (input == ConsoleKey.LeftArrow && 0 < cursor)
+                    DisplayGame(EMPTY, --cursor, lastPlacePosXY);
             }
-
-            for (int k = 0; k < TILE_SIZE; k++) {
-                for (int p = 0; p < piecesLefts.Length; p++) {
-                    if (0 < p)
-                        Print(" ");
-                    Print(lines[p][k], TILE_BG, colors[p]);
-                }
-                Println();
-            }
-
-            Println(String.Format("Asking for index in {0}, {1}: ", 1, piecesLefts.Length));
-            int input = -1;
-
-            // Tant que la sasie n'est pas valide (hors de l'intervale [1, `piecesLefts.Length`]), refait la saisie.
-            while ((input = int.Parse(Console.ReadLine())) < 0 || input > piecesLefts.Length)
-                Print(String.Format("Not a valide index; asking for index in {0}, {1}: ", 1, piecesLefts.Length));
-
-            // Array starts at 0.
-            return input - 1;
+            
+            return cursor;
         }
 
         static void Place(int pieceIndex, int[] posXY) {
@@ -228,17 +255,17 @@ namespace Quartzoto {
             do {
                 // Affiche le plateau.
                 currentPlayer = players[player];
-                DisplayGrid();
 
                 // Au premier tours, le joueur 1 donne une pièce au joueur 2.
                 if (-1 < storedPieceIndex) {
+                    DisplayGame(piecesLefts[storedPieceIndex]);
+
                     int[] placePosXY = ChooseTile(); // Le joueur désigne une case, puis
                     Place(storedPieceIndex, placePosXY); // place la pièce sur le plateau (la retire de la pile).
                     victory = IsFinished(placePosXY, turnCounter); // Test si c'est un coups gagnant.
-                    
-                    // Réactualise l'affichage.
-                    DisplayGrid();
                 }
+
+                DisplayGame();
 
                 // Si la partie n'est pas finie
                 if (!victory && turnCounter < 17) {
