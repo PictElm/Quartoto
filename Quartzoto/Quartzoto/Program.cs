@@ -38,6 +38,9 @@ namespace Quartzoto {
         const char SEP_VE = '│';
         const char SEP_CX = '┼';
 
+        // Taux (en poucents) d'erreur de l'ordinateur.
+        static int threshold = 100;
+
         // Stockage du plateau.
         static int[,] grid;
         // Stockage des pieces restante : la pioche.
@@ -54,15 +57,23 @@ namespace Quartzoto {
                 // Initialise le jeux : le plateau et la pioche (et l'aléatoire).
                 Initialize();
 
+                int turnCounter = 0;
+
                 // Fait une partie contre l'ordinateur.
-                String winner = PlayGame("Moi");
+                String winner = PlayGame(out turnCounter, "Moi");
+
+                threshold+= 100 / turnCounter * (winner == "Computer" ? 1 : -1);
+                if (threshold < 0)
+                    threshold = 0;
+                if (100 < threshold)
+                    threshold = 100;
 
                 // Indique le vainqueur.
-                Println("\n" + winner + " wins!\n", MAIN_BG, ConsoleColor.Yellow);
+                Print("\n" + winner + " wins!", MAIN_BG, ConsoleColor.Yellow);
+                Println("       New difficulty: " + (100 - threshold) + "%.");
                 Console.Beep(440, 250);
 
-                Println();
-                Print("Continue? (Y/N) ");
+                Print("Continue? (y/n) ");
             } while (Console.ReadKey().Key != ConsoleKey.N);
             Println();
 
@@ -119,7 +130,7 @@ namespace Quartzoto {
             bool hole = (piece & FLAG_IS_HOLE) != 0; // Es-ce que la pièce est percée ?
 
             // Détermine comment devrais se comporté la colonne centrale (varie selon la taille et le perçage).
-            String gap = hole ? (tall ? " V_" : "  V") : (tall ? "_ _" : " __");
+            String gap = hole ? (tall ? " U_" : "  U") : (tall ? "_ _" : " __");
 
             // Forme exterieur de la pièce.
             String shapeR = sqre ? "[" : "(";
@@ -353,7 +364,13 @@ namespace Quartzoto {
             return flagsLine + flagsColumn + flagsDiagonal + flagsAntidiagonal != 0;
         }
 
-        static String PlayGame(String player1, String player2="Computer", bool hardComputer=false) {
+        static void WaitEnterRelease() {
+            //while (Console.ReadKey().Key == ConsoleKey.Enter)
+            //    ;
+            System.Threading.Thread.Sleep(500);
+        }
+
+        static String PlayGame(out int turnCounter, String player1, String player2="Computer", bool hardComputer=false) {
             // Si un des joueurs s'appel "Computer", il est remplacer par un ordinateur.
             String[] players = new String[] { player1, player2 };
             int player = 0; // Le premier joueur est le joueur `player1` (d'indice 0).
@@ -362,7 +379,7 @@ namespace Quartzoto {
             int storedPieceIndex = -1;
 
             // Variables permettant de déterminer si la partie est finie.
-            int turnCounter = 0;
+            turnCounter = 0;
             bool victory = false;
 
             do {
@@ -377,7 +394,7 @@ namespace Quartzoto {
                     int[] placePosXY;
 
                     if (currentPlayer == "Computer")
-                        placePosXY = ComputerChooseTile(piecesLefts[storedPieceIndex], false); // L'ordinateur trouve une case.
+                        placePosXY = ComputerChooseTile(piecesLefts[storedPieceIndex], threshold); // L'ordinateur trouve une case.
                     else
                         placePosXY = ChooseTile(piecesLefts[storedPieceIndex]); // Le joueur choisis une case.
 
@@ -394,13 +411,14 @@ namespace Quartzoto {
                     DisplayGame();
 
                     if (currentPlayer == "Computer")
-                        storedPieceIndex = ComputerChoosePiece(false);// L'ordinateur trouve une pièce.
+                        storedPieceIndex = ComputerChoosePiece(threshold);// L'ordinateur trouve une pièce.
                     else
                         storedPieceIndex = ChoosePiece(); // le joueur choisis une pièce.
                 }
                 // Si la pertie est fini, il n'y a pas lieux de choisir de nouvelle pièce.
                 else {
                     // Affiche le plateau final.
+                    Console.Clear();
                     Println("Player: " + currentPlayer + "\n");
                     DisplayGrid();
                 }
@@ -447,9 +465,9 @@ namespace Quartzoto {
             return r;
         }
 
-        static int[] ComputerChooseTile(int pieceToPlace, bool isRandom=true) {
+        static int[] ComputerChooseTile(int pieceToPlace, int randomThreshold=100) {
             // Ordinateur en mode aléatoire.
-            if (isRandom) {
+            if (rng.Next(100) < randomThreshold) {
                 int x, y;
                 // Retourne la première case trouver non occupée.
                 while (grid[x = rng.Next(SIZE), y = rng.Next(SIZE)] != EMPTY)
@@ -463,26 +481,26 @@ namespace Quartzoto {
                 for (int i = 0; i < SIZE; i++) {
 
                     // Pour chaque lignes, compte les 1 en `k`-ème bit, puis les 0.
-                    if (CountFeature(0, i, "Line", k, false) == SIZE - 1 || CountFeature(0, i, "Line", k, true) == SIZE - 1)
+                    if (CountFeature(0, i, "Line", k, (pieceToPlace & 1 << k) == 0) == SIZE - 1)
                         for (int j = 0; j < SIZE; j++) // Si 3 pièces partage une caractéristique, cherche une case vide.
                             if (grid[j, i] == EMPTY)
                                 return new int[] { j, i };
 
                     // Pour chaque colonne.
-                    if (CountFeature(i, 0, "Column", k, false) == SIZE - 1 || CountFeature(i, 0, "Column", k, true) == SIZE - 1)
+                    if (CountFeature(i, 0, "Column", k, (pieceToPlace & 1 << k) == 0) == SIZE - 1)
                         for (int j = 0; j < SIZE; j++)
                             if (grid[i, j] == EMPTY)
                                 return new int[] { i, j };
                 }
 
                 // Pour la diagonnale.
-                if (CountFeature(0, 0, "Diagonal", k, false) == SIZE - 1 || CountFeature(0, 0, "Diagonal", k, true) == SIZE - 1)
+                if (CountFeature(0, 0, "Diagonal", k, (pieceToPlace & 1 << k) == 0) == SIZE - 1)
                     for (int i = 0; i < SIZE; i++)
                         if (grid[i, i] == EMPTY)
                             return new int[] { i, i };
 
                 // Pour la l'antidiagonnale.
-                if (CountFeature(0, 0, "Antidiagonal", k, false) == SIZE - 1 || CountFeature(0, 0, "Antidiagonal", k, true) == SIZE - 1)
+                if (CountFeature(0, 0, "Antidiagonal", k, (pieceToPlace & 1 << k) == 0) == SIZE - 1)
                     for (int j = 0; j < SIZE; j++)
                         if (grid[j, SIZE-1 - j] == EMPTY)
                             return new int[] { j, SIZE-1 - j };
@@ -492,46 +510,47 @@ namespace Quartzoto {
             return ComputerChooseTile(pieceToPlace);
         }
 
-        static int ComputerChoosePiece(bool isRandom=true) {
+        static int ComputerChoosePiece(int randomThreshold=100) {
             // Ordinateur en mode aléatoire.
-            if (isRandom)
+            if (rng.Next(100) < randomThreshold)
                 // Retourne l'indice d'une case au hasard.
                 return rng.Next(piecesLefts.Length);
 
-            int[] shuffled = piecesLefts.OrderBy(e => rng.Next()).ToArray();
-            bool canWinWith = false;
+            //int[] shuffled = piecesLefts.OrderBy(e => rng.Next()).ToArray();
 
             for (int p = 0; p < piecesLefts.Length; p++) {
+                bool canWinWithP = false;
+
                 for (int k = 0; k < SIZE; k++) {
                     for (int i = 0; i < SIZE; i++) {
 
                         // Pour chaque lignes, compte les 1 en `k`-ème bit, puis les 0.
                         if (CountFeature(0, i, "Line", k, (piecesLefts[p] & 1 << k) == 0) == SIZE - 1)
                             for (int j = 0; j < SIZE; j++) // Si 3 pièces partage une caractéristique, cherche une case vide.
-                                if (grid[i, j] == EMPTY) // S'il y a une case vide, c'est que le joueur peut gagnier.
-                                    canWinWith = true;
+                                if (grid[j, i] == EMPTY) // S'il y a une case vide, c'est que le joueur peut gagnier.
+                                    canWinWithP = true;
 
                         // Pour chaque colonne.
                         if (CountFeature(i, 0, "Column", k, (piecesLefts[p] & 1 << k) == 0) == SIZE - 1)
                             for (int j = 0; j < SIZE; j++)
-                                if (grid[j, i] == EMPTY)
-                                    canWinWith = true;
+                                if (grid[i, j] == EMPTY)
+                                    canWinWithP = true;
                     }
 
                     // Pour la diagonnale.
                     if (CountFeature(0, 0, "Diagonal", k, (piecesLefts[p] & 1 << k) == 0) == SIZE - 1)
                         for (int i = 0; i < SIZE; i++)
                             if (grid[i, i] == EMPTY)
-                                canWinWith = true;
+                                canWinWithP = true;
 
                     // Pour la l'antidiagonnale.
                     if (CountFeature(0, 0, "Antidiagonal", k, (piecesLefts[p] & 1 << k) == 0) == SIZE - 1)
                         for (int j = 0; j < SIZE; j++)
                             if (grid[j, SIZE-1 - j] == EMPTY)
-                                canWinWith = true;
+                                canWinWithP = true;
                 }
 
-                if (!canWinWith)
+                if (!canWinWithP)
                     return p;
             }
 
