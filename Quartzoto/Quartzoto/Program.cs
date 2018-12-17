@@ -50,15 +50,21 @@ namespace Quartzoto {
         static Random rng;
 
         static void Main(string[] args) {
-            // Initialise le jeux : le plateau et la pioche (et l'aléatoire).
-            Initialize();
+            do {
+                // Initialise le jeux : le plateau et la pioche (et l'aléatoire).
+                Initialize();
 
-            // Fait une partie contre l'ordinateur.
-            String winner = PlayGame("Moi");
+                // Fait une partie contre l'ordinateur.
+                String winner = PlayGame("Moi");
 
-            // Indique le vainqueur.
-            Println("\n" + winner + " wins!\n", MAIN_BG, ConsoleColor.Yellow);
-            Console.Beep(440, 250);
+                // Indique le vainqueur.
+                Println("\n" + winner + " wins!\n", MAIN_BG, ConsoleColor.Yellow);
+                Console.Beep(440, 250);
+
+                Println();
+                Print("Continue? (Y/N) ");
+            } while (Console.ReadKey().Key != ConsoleKey.N);
+            Println();
 
             // Reinitialise les couleurs de la console.
             Console.BackgroundColor = ConsoleColor.Black;
