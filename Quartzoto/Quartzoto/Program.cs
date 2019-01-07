@@ -53,6 +53,16 @@ namespace Quartzoto {
         // Utilisé pour générer de l'aléatoire.
         static Random rng;
 
+        /// <summary>
+        /// <li>Effectuer une partie</li>
+        /// <li>Adapter la difficultée</li>
+        /// <li>Demander si faire une nouvelle partie</li>
+        /// </summary>
+        /// <param name="args">
+        /// Arguments de la ligne de commande :
+        ///     [-j1 nom] pour choisir le nom du joueur
+        ///     [-j2 nom] pour avoir un deuxième joueur
+        /// </param>
         static void Main(string[] args) {
             do {
                 // Initialise le jeux : le plateau et la pioche (et l'aléatoire).
@@ -83,6 +93,10 @@ namespace Quartzoto {
             Console.ForegroundColor = ConsoleColor.White;
         }
 
+        /// <summary>
+        /// Initialise la pioche avec toute les pièces disponible de base, rempli le plateau de `EMPTY` (pas de pièce).
+        /// Crée également une nouvelle instance de rng.
+        /// </summary>
         static void Initialize() {
             // Initialise la liste des pièces disponibles (la 'pioche').
             piecesLefts = new int[SIZE * SIZE];
@@ -99,6 +113,13 @@ namespace Quartzoto {
             rng = new Random();
         }
 
+        /// <summary>
+        /// Affiche une représentation de l'objet fournit, selon les couleurs précisées.
+        /// </summary>
+        /// <param name="c">Objet a afficher.</param>
+        /// <param name="bg">Couleur de fond.</param>
+        /// <param name="fg">Couleur de police.</param>
+        /// <remarks>Si la couleur de fond est la même que celle qui est deja chargée, passe l'opération (de même pour la couleur de police).</remarks>
         static void Print(Object c, ConsoleColor bg=MAIN_BG, ConsoleColor fg=MAIN_FG) {
             // Change la couleur uniquement si nessecaire.
             if (Console.BackgroundColor != bg)
@@ -112,11 +133,23 @@ namespace Quartzoto {
             Console.Write(c);
         }
 
+        /// <summary>
+        /// Fonctionne de même que `Print` mais ajoute un retour à la ligne après l'objet.
+        /// </summary>
+        /// <param name="c">Objet a afficher.</param>
+        /// <param name="bg">Couleur de fond.</param>
+        /// <param name="fg">Couleur de police.</param>
         static void Println(Object c=null, ConsoleColor bg=MAIN_BG, ConsoleColor fg=MAIN_FG) {
             // Si l'objet en paramètre est null, saute juste une ligne.
             Print(c == null ? "\n" : c.ToString() + "\n", bg, fg);
         }
 
+        /// <summary>
+        /// Détaille la pièce passée en paramètre par une série de chaine de caractères.
+        /// </summary>
+        /// <param name="piece">Pièce à détailler.</param>
+        /// <returns>Série de chaine de caractères décrivant la pièce, ligne par ligne.</returns>
+        /// <remarks>La couleur d'affichage n'est pas définie ici.</remarks>
         static String[] DetailPiece(int piece) {
             // Si la piece en paramètre est une case vide, retourne des chaines de caractères vides.
             if (piece == EMPTY) {
@@ -143,6 +176,13 @@ namespace Quartzoto {
                                   "" + shapeR + gap[2] + shapeL };
         }
 
+        /// <summary>
+        /// Affiche le plateau à l'écran.
+        /// Si la pièce à placer est précisée, elle est dessinée en parallèle (à coté du plateau).
+        /// Si les coordonées de la pièce en surbriance est précisée et contient des coordonées, celle-ci est affiche en surbriance.
+        /// </summary>
+        /// <param name="pieceToPlace">Pièce à placer.</param>
+        /// <param name="highlighted">Coordonées (liste { x, y }) de la pièce en surbriance.</param>
         static void DisplayGrid(int pieceToPlace=EMPTY, params int[] highlighted) {
             String[,][] lines = new String[SIZE, SIZE][];
             ConsoleColor[,] colors = new ConsoleColor[SIZE, SIZE];
@@ -215,7 +255,14 @@ namespace Quartzoto {
             Println();
         }
 
-        static void DisplayPiecesLeft(int pieceToPlace=EMPTY, int highlighted=-1)  {
+        /// <summary>
+        /// Affiche la pioche à l'écran.
+        /// Si la pièce à placer est précisée, elle n'est pas affichée (puisqu'elle est dans la main du joueur).
+        /// Si l'indice de la pièce en surbriance est précisée, celle-ci est affichée en surbriance.
+        /// </summary>
+        /// <param name="pieceToPlace">Pièce à placer (elle est donc déjà dessinée dans `DisplayGrid`).</param>
+        /// <param name="highlighted">Indice de la pièce en surbriance.</param>
+        static void DisplayPiecesLeft(int pieceToPlace=EMPTY, int highlighted=-1) {
             String[][] lines = new String[piecesLefts.Length][];
             ConsoleColor[] colors = new ConsoleColor[piecesLefts.Length];
 
@@ -242,6 +289,13 @@ namespace Quartzoto {
             }
         }
 
+        /// <summary>
+        /// Affiche l'état du jeux avec les fonction `DisplayGrid` et `DisplayPiecesLeft`.
+        /// </summary>
+        /// <param name="pieceToPlace">(Si précisé) est une pièce.</param>
+        /// <param name="selectedPiece">(Si précisé) est un indice dans la pioche.</param>
+        /// <param name="selectedTile">(Si précisé) sont de coordones (liste { x, y }).</param>
+        /// <remarks>Affiche également le nom du joueur dont c'est le tours.</remarks>
         static void DisplayGame(int pieceToPlace=EMPTY, int selectedPiece=-1, params int[] selectedTile) {
             // Nettoie la console.
             Console.Clear();
@@ -254,6 +308,11 @@ namespace Quartzoto {
             DisplayPiecesLeft(pieceToPlace, selectedPiece);
         }
 
+        /// <summary>
+        /// Contient la boucle qui laisse le joueur choisie une case sur laquelle placer la pièce précisée.
+        /// </summary>
+        /// <param name="pieceToPlace">Pièce à placer.</param>
+        /// <returns>Les coordonées de la case choisie (liste { x, y }).</returns>
         static int[] ChooseTile(int pieceToPlace) {
             ConsoleKey input = ConsoleKey.Clear;
             int x = SIZE / 2, y = SIZE / 2;
@@ -282,6 +341,12 @@ namespace Quartzoto {
             return new int[] { x, y };
         }
 
+
+        /// <summary>
+        /// Contient la boucle qui laisse le joueur choisie la pièce qu'il donne à son adversaire.
+        /// </summary>
+        /// <param name="lastPlacePosXY">Cordonée de la dernière pièce placée.</param>
+        /// <returns>L'indice dans la pioche de la pièce choisie.</returns>
         static int ChoosePiece(params int[] lastPlacePosXY) {
             ConsoleKey input = ConsoleKey.Clear;
             int cursor = piecesLefts.Length / 2;
@@ -303,6 +368,11 @@ namespace Quartzoto {
             return cursor;
         }
 
+        /// <summary>
+        /// Place la pièce de la pioche désignée par l'indice aux coordonées indiquées.
+        /// </summary>
+        /// <param name="pieceIndex">Indice de la pièce a placer.</param>
+        /// <param name="posXY">Coordonées (liste { x, y }) de la case ciblée.</param>
         static void Place(int pieceIndex, int[] posXY) {
             // Place la pièce sur le plateau.
             grid[posXY[0], posXY[1]] = piecesLefts[pieceIndex];
@@ -314,7 +384,15 @@ namespace Quartzoto {
             piecesLefts = tmp;
         }
 
-        static bool IsFinished(int[] lastPlacePosXY, int turnCounter, bool testForSquares=false) {
+        /// <summary>
+        /// Détermine si la partie est finie.
+        /// Les test ne sont effectués que sur la colonne, la ligne et, si il y a lieux, sur les diagonnale de la dernière pièce placée.
+        /// </summary>
+        /// <param name="lastPlacePosXY">Coordones (liste { x, y }) de la dernière pièce placée.</param>
+        /// <param name="testForSquares">[Foncionnalitée non implementée.]</param>
+        /// <returns>`true` si la partie est finie (un Quarto a été trouvé), sinon `false`.</returns>
+        /// <remarks>Foncinne par '&' cummulatifs.</remarks>
+        static bool IsFinished(int[] lastPlacePosXY, bool testForSquares=false) {
             /* On cherche a déterminer s'il existe une caractériqtique redondante sur
              * la ligne, la colonne ou éventuelement une des diagonnale sur laquel on vient de jouer.
              * 
@@ -365,13 +443,24 @@ namespace Quartzoto {
             return flagsLine + flagsColumn + flagsDiagonal + flagsAntidiagonal != 0;
         }
 
+        /// <summary>
+        /// Permet d'éviter les 'Entrée à 4Hz' : sans, garder la touche `Enter` passe touts les menus très vite / instantanément.
+        /// </summary>
         static void WaitEnterRelease() {
             //while (Console.ReadKey().Key == ConsoleKey.Enter)
             //    ;
             System.Threading.Thread.Sleep(500);
         }
 
-        static String PlayGame(out int turnCounter, String player1, String player2="Computer", bool hardComputer=false) {
+        /// <summary>
+        /// Effectue une partie entre les deux joueurs.
+        /// Si un des joueur s'appel "Computer" (joueur 2 par défaut), il est jouer par l'ordinateur.
+        /// </summary>
+        /// <param name="turnCounter">Compteur de tours, est inisialiser à 0.</param>
+        /// <param name="player1">Nom du joueur 1.</param>
+        /// <param name="player2">Nom du joueur 2, "Computer" par défaut.</param>
+        /// <returns>Le nom du joueur qui l'emporte.</returns>
+        static String PlayGame(out int turnCounter, String player1, String player2="Computer") {
             // Si un des joueurs s'appel "Computer", il est remplacer par un ordinateur.
             String[] players = new String[] { player1, player2 };
             int player = 0; // Le premier joueur est le joueur `player1` (d'indice 0).
@@ -403,7 +492,7 @@ namespace Quartzoto {
                     Place(storedPieceIndex, placePosXY); 
 
                     // Test si c'est un coups gagnant.
-                    victory = IsFinished(placePosXY, turnCounter); 
+                    victory = IsFinished(placePosXY); 
                 }
 
                 // Si la partie n'est pas finie, on passe à la selection de la pièce suivante.
@@ -436,6 +525,16 @@ namespace Quartzoto {
 
         ////// La suite du Program concerne l’ordinateur dans une partie //////
 
+
+        /// <summary>
+        /// Compte le nombre de pièce ayant la caractériqstique précisée à la valeur précisiée sur la rangée précisée.
+        /// </summary>
+        /// <param name="i">Si direction est "Column" : la rangée est cette colonne.</param>
+        /// <param name="j">Si direction est "Line" : la rangée est cette ligne.</param>
+        /// <param name="direction">"Line", "Column", "Diagonal" ou "Antidiagonal".</param>
+        /// <param name="featureOffset">Carractéristique a comptée, voir les drapeaux (`FLAG_IS_...`).</param>
+        /// <param name="featureSwitch">Si `false` compte les `1`, si `true` les `0`.</param>
+        /// <returns>Le nombre de pièces remplissant les conditions.</returns>
         static int CountFeature(int i, int j, String direction, int featureOffset, bool featureSwitch) {
             int r = 0;
 
@@ -466,6 +565,12 @@ namespace Quartzoto {
             return r;
         }
 
+        /// <summary>
+        /// Choix d'une case par l'ordinateur.
+        /// </summary>
+        /// <param name="pieceToPlace">Pièce à placer.</param>
+        /// <param name="randomThreshold">Seuil (en %) d'aléatoire (équivalent à un taux d'erreur).</param>
+        /// <returns></returns>
         static int[] ComputerChooseTile(int pieceToPlace, int randomThreshold=100) {
             // Ordinateur en mode aléatoire.
             if (rng.Next(100) < randomThreshold) {
@@ -511,6 +616,11 @@ namespace Quartzoto {
             return ComputerChooseTile(pieceToPlace);
         }
 
+        /// <summary>
+        /// Choix d'une pièce par l'ordinateur.
+        /// </summary>
+        /// <param name="randomThreshold">Seuil (en %) d'aléatoire (équivalent à un taux d'erreur).</param>
+        /// <returns>L'indice dans la pioche de la pièce choisie.</returns>
         static int ComputerChoosePiece(int randomThreshold=100) {
             // Ordinateur en mode aléatoire.
             if (rng.Next(100) < randomThreshold)
