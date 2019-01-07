@@ -60,21 +60,24 @@ namespace Quartzoto {
 
                 int turnCounter = 0;
 
-                // Fait une partie contre l'ordinateur.
-                String winner = PlayGame(out turnCounter, "Moi");
+                // Fait une partie contre l'ordinateur. 
+               String winner = PlayGame(out turnCounter, "Moi");
+                 if (winner != "Personne ne")
+                {
+                    threshold += 100 / turnCounter * (winner == "Ordinateur" ? 1 : -1);
+                    if (threshold < 0)
+                        threshold = 0;
+                    if (100 < threshold)
+                        threshold = 100;
+                } 
 
-                threshold+= 100 / turnCounter * (winner == "Computer" ? 1 : -1);
-                if (threshold < 0)
-                    threshold = 0;
-                if (100 < threshold)
-                    threshold = 100;
 
                 // Indique le vainqueur.
-                Print("\n" + winner + " wins!", MAIN_BG, ConsoleColor.Yellow);
-                Println("       New difficulty: " + (100 - threshold) + "%.");
+                Print("\n" + winner + " gagne!", MAIN_BG, ConsoleColor.Yellow);
+                Println("       Nouvelle difficulté: " + (100 - threshold) + "%.");
                 Console.Beep(440, 250);
 
-                Print("Continue? (y/n) ");
+                Print("Continuer ? (y/n) ");
             } while (Console.ReadKey().Key != ConsoleKey.N);
             Println();
 
@@ -202,7 +205,9 @@ namespace Quartzoto {
 
                 // Text au dessus de la pièce à placer.
                 if (pieceToPlace != EMPTY && j == 0)
-                    Print(new String(' ', 12) + "Piece to place:");
+                    Print(new String(' ', 12) + "Pièce à placer :");
+                if (pieceToPlace == EMPTY && j == 0)
+                    Print(new String(' ', 12) + "Choisissez la pièce de votre adversaire ");
 
                 Println();
             }
@@ -247,7 +252,7 @@ namespace Quartzoto {
             Console.Clear();
 
             // Affiche le nom du joueur actuel.
-            Println("Player: " + currentPlayer + "\n");
+            Println("Joueur: " + currentPlayer + "\n");
             // Affiche le plateau.
             DisplayGrid(pieceToPlace, selectedTile);
             // Affiche la pioche.
@@ -371,7 +376,7 @@ namespace Quartzoto {
             System.Threading.Thread.Sleep(500);
         }
 
-        static String PlayGame(out int turnCounter, String player1, String player2="Computer", bool hardComputer=false) {
+        static String PlayGame(out int turnCounter, String player1, String player2="Ordinateur", bool hardComputer=false) {
             // Si un des joueurs s'appel "Computer", il est remplacer par un ordinateur.
             String[] players = new String[] { player1, player2 };
             int player = 0; // Le premier joueur est le joueur `player1` (d'indice 0).
@@ -390,11 +395,12 @@ namespace Quartzoto {
                 // Au premier tours, le joueur 1 donne une pièce au joueur 2 : il n'y a donc pas de placement de pièces.
                 if (-1 < storedPieceIndex) {
                     // Affiche le plateau avec la pièce a placer.
-                    DisplayGame(piecesLefts[storedPieceIndex]);
+                    if (currentPlayer != "Ordinateur")
+                        DisplayGame(piecesLefts[storedPieceIndex]);
 
                     int[] placePosXY;
 
-                    if (currentPlayer == "Computer")
+                    if (currentPlayer == "Ordinateur")
                         placePosXY = ComputerChooseTile(piecesLefts[storedPieceIndex], threshold); // L'ordinateur trouve une case.
                     else
                         placePosXY = ChooseTile(piecesLefts[storedPieceIndex]); // Le joueur choisis une case.
@@ -409,9 +415,10 @@ namespace Quartzoto {
                 // Si la partie n'est pas finie, on passe à la selection de la pièce suivante.
                 if (!victory && turnCounter < SIZE * SIZE) {
                     // Affiche le plateau et la pioche.
-                    DisplayGame();
+                    if (currentPlayer != "Ordinateur")
+                        DisplayGame();
 
-                    if (currentPlayer == "Computer")
+                    if (currentPlayer == "Ordinateur")
                         storedPieceIndex = ComputerChoosePiece(threshold);// L'ordinateur trouve une pièce.
                     else
                         storedPieceIndex = ChoosePiece(); // le joueur choisis une pièce.
@@ -420,7 +427,7 @@ namespace Quartzoto {
                 else {
                     // Affiche le plateau final.
                     Console.Clear();
-                    Println("Player: " + currentPlayer + "\n");
+                    Println("Joueur: " + currentPlayer + "\n");
                     DisplayGrid();
                 }
 
@@ -430,7 +437,7 @@ namespace Quartzoto {
             } while (!victory && turnCounter++ < SIZE * SIZE);
 
             // Fin de la partie : retourne le nom du joueur gagnant s'il y en a un, "Personne" sinon.
-            return victory ? currentPlayer : "Nobody";
+            return victory ? currentPlayer : "Personne ne";
         }
 
 
