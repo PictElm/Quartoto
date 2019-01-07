@@ -25,7 +25,8 @@ namespace Quartzoto {
         const ConsoleColor COLOR_1 = ConsoleColor.Blue;
         const ConsoleColor COLOR_2 = ConsoleColor.Red;
         // Couleur de la pièce sélectionnée.
-        const ConsoleColor COLOR_SEL = ConsoleColor.Green;
+        const ConsoleColor COLOR_SEL_1 = ConsoleColor.Cyan;
+        const ConsoleColor COLOR_SEL_2 = ConsoleColor.Yellow;
 
         // Drapeaux utilisées pour une partie normale (4x4, fonctionne en deçà mais pas en delà).
         const int FLAG_IS_COL1 = 1;
@@ -155,7 +156,7 @@ namespace Quartzoto {
                     // S'il y a une pièce en selection, elle est 'placée' par dessus le plateau.
                     if (highlighted.Length == 2 && highlighted[0] == i && highlighted[1] == j) {
                         lines[i, j] = lineToPlace;
-                        colors[i, j] = COLOR_SEL;
+                        colors[i, j] = (pieceToPlace & FLAG_IS_COL1) != 0 ? COLOR_SEL_1 : COLOR_SEL_2;
                     } else {
                         lines[i, j] = DetailPiece(grid[i, j]);
                         colors[i, j] = grid[i, j] == EMPTY ? MAIN_FG : (grid[i, j] & FLAG_IS_COL1) != 0 ? COLOR_1 : COLOR_2;
@@ -226,7 +227,7 @@ namespace Quartzoto {
 
             // Si une pièces est surlignée, change sa couleur.
             if (-1 < highlighted)
-                colors[highlighted] = COLOR_SEL;
+                colors[highlighted] = (piecesLefts[highlighted] & FLAG_IS_COL1) != 0 ? COLOR_SEL_1 : COLOR_SEL_2;
 
             // L'affichage découpe encore une fois chaque pièce de manière à afficher
             // l'intégralité d'une ligne de caractères avant de passer à la suivante.
