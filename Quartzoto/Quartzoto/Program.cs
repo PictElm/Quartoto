@@ -460,7 +460,7 @@ namespace Quartzoto {
         /// <param name="player1">Nom du joueur 1.</param>
         /// <param name="player2">Nom du joueur 2, "Computer" par défaut.</param>
         /// <returns>Le nom du joueur qui l'emporte.</returns>
-        static String PlayGame(out int turnCounter, String player1, String player2 = "Computer", bool hardComputer = false) {
+        static String PlayGame(out int turnCounter, String player1, String player2 = "Ordinateur") {
             // Si un des joueurs s'appel "Computer", il est remplacer par un ordinateur.
             String[] players = new String[] { player1, player2 };
             int player = 0; // Le premier joueur est le joueur `player1` (d'indice 0).
