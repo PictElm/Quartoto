@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -8,10 +9,10 @@ namespace Quartzoto {
 
     class Program {
 
-        // Le jeux s'adapte à d'autre taille (notament 2x2, c'est plus facile de gagner :3)
-        const int SIZE = 4;
+        // Le jeux s'adapte à d'autre taille (les puissances de 2 ;  2x2, 4x4, 8x8, ...)
+        static int SIZE = 4;
         // Taille d'une pièce et donc également de la case qu'elle occupe.
-        const int TILE_SIZE = 3;
+        static int TILE_SIZE = 3;
         // Désigne une case vide (parce que 0 désigne la pièce rouge, petite, ronde et plate).
         const int EMPTY = -1;
 
@@ -25,8 +26,7 @@ namespace Quartzoto {
         const ConsoleColor COLOR_1 = ConsoleColor.Blue;
         const ConsoleColor COLOR_2 = ConsoleColor.Red;
         // Couleur de la pièce sélectionnée.
-        const ConsoleColor COLOR_SEL_1 = ConsoleColor.Cyan;
-        const ConsoleColor COLOR_SEL_2 = ConsoleColor.Yellow;
+        const ConsoleColor SEL_BG = ConsoleColor.DarkGreen;
 
         // Drapeaux utilisées pour une partie normale (4x4, fonctionne en deçà mais pas en delà).
         const int FLAG_IS_COL1 = 1;
@@ -34,10 +34,19 @@ namespace Quartzoto {
         const int FLAG_IS_TALL = 4;
         const int FLAG_IS_HOLE = 8;
 
+        // Fichier de configuration.
+        const String FILE_CONFIG = "config.txt";
+        // Fichier de textures
+        const String FILE_TEXTURES = "pieces.txt";
+
         // Séparateur utilisées pour les contours du plateaux (box drawing characters).
         const char SEP_HZ = '─';
         const char SEP_VE = '│';
         const char SEP_CX = '┼';
+        // Stock les 'texture' des pieces, chargées depuis le fichier de textures.
+        static String[][] piecesTextures;
+        // Titre affiché en haut de page.
+        static String[] title;
 
         // Taux (en poucents) d'erreur de l'ordinateur.
         static int threshold = 100;
@@ -62,6 +71,9 @@ namespace Quartzoto {
         /// </summary>
         /// <param name="args">Arguments de la ligne de commande (non utilisés).</param>
         static void Main(string[] args) {
+            LoadConfig();
+            LoadGraphics();
+
             String name1 = "Tu", name2 = "Ordinateur";
 
             Print("Y a-t-il 2 joueurs ? (o/n) ");
@@ -88,29 +100,64 @@ namespace Quartzoto {
 
                 // Fait une partie.
                 String winner = PlayGame(out turnCounter, name1, name2);
-
-                threshold+= 100 / turnCounter * (winner != "Ordinateur" ? -1 : 1);
+                
+                threshold += 100 / turnCounter * (winner == "Ordinateur" ? 1 : -1);
                 if (threshold < 0)
                     threshold = 0;
                 if (100 < threshold)
                     threshold = 100;
 
                 // Indique le vainqueur.
-                Print("\n" + winner + " gagne!", MAIN_BG, ConsoleColor.Yellow);
-                Println("       Nouvelle difficultée: " + (100 - threshold) + "%.");
                 Console.Beep(440, 250);
+                Print("\n" + winner + " gagne!", MAIN_BG, ConsoleColor.Yellow);
+                if (name1 == "Ordinateur" || name2 == "Ordinateur")
+                    Print("       Nouvelle difficultée: " + (100 - threshold) + "%.");
 
                 // Au prochain tour, le perdant commance.
                 name1 = winner == name1 ? name2 : name1;
                 name2 = winner;
 
-                Print("Refaire une partie ? (o/n) ");
+                Print("\nRefaire une partie ? (o/n) ");
             } while (Console.ReadKey().Key != ConsoleKey.N);
             Println();
 
             // Reinitialise les couleurs de la console.
             Console.BackgroundColor = ConsoleColor.Black;
             Console.ForegroundColor = ConsoleColor.White;
+        }
+
+        /// <summary>
+        /// Charge les paramètres de configuration.
+        /// </summary>
+        static void LoadConfig() {
+            foreach (String line in File.ReadAllLines(FILE_CONFIG)) {
+                String[] kwa = line.Split(':');
+
+                if (kwa[0] == "SIZE")
+                    SIZE = int.Parse(kwa[1]);
+                else if (kwa[0] == "TILE_SIZE")
+                    TILE_SIZE = int.Parse(kwa[1]);
+            }
+        }
+
+        /// <summary>
+        /// Charge les chaines de caractères utilisées pour l'affichage.
+        /// </summary>
+        static void LoadGraphics() {
+            piecesTextures = new String[SIZE * SIZE + 1][];
+            int k = 0;
+            // Chaque ligne du fichier contient une pièce découpée en tranches séparées par des virgules.
+            foreach (String line in File.ReadAllLines(FILE_TEXTURES))
+                piecesTextures[k++] = line.Split(',');
+
+            int width = SIZE * SIZE * (TILE_SIZE + 2);
+
+            title = new String[] { new string(SEP_HZ, width),
+                                   new string(' ', width / 2 - 4) + "Quartzoto",
+                                   new string(SEP_HZ, width) };
+            
+            Console.SetWindowSize(width, SIZE * (TILE_SIZE + 2) + TILE_SIZE + 8);
+            Console.SetBufferSize(width, SIZE * (TILE_SIZE + 2) + TILE_SIZE + 8);
         }
 
         /// <summary>
@@ -172,28 +219,29 @@ namespace Quartzoto {
         /// <remarks>La couleur d'affichage n'est pas définie ici.</remarks>
         static String[] DetailPiece(int piece) {
             // Si la piece en paramètre est une case vide, retourne des chaines de caractères vides.
-            if (piece == EMPTY) {
+            if (piece == EMPTY || piece == EMPTY << SIZE) {
                 String[] r = new String[TILE_SIZE];
                 for (int k = 0; k < TILE_SIZE; r[k++] = new String(' ', TILE_SIZE))
                     ;
                 return r;
             }
 
-            bool sqre = (piece & FLAG_IS_SQRE) != 0; // Es-ce que la pièce est carrée ?
-            bool tall = (piece & FLAG_IS_TALL) != 0; // Es-ce que la pièce est grande ?
-            bool hole = (piece & FLAG_IS_HOLE) != 0; // Es-ce que la pièce est percée ?
+            String[] copy = new String[piecesTextures[piece].Length];
+            for (int k = 0; k < piecesTextures[piece].Length; copy[k] = "" + piecesTextures[piece][k++])
+                ;
+            return copy;
+        }
 
-            // Détermine comment devrais se comporté la colonne centrale (varie selon la taille et le perçage).
-            String gap = hole ? (tall ? " U_" : "  U") : (tall ? "_ _" : " __");
-
-            // Forme exterieur de la pièce.
-            String shapeR = sqre ? "[" : "(";
-            String shapeL = sqre ? "]" : ")";
-
-            // Compile le tout en ce qui s'affiche à l'écran.
-            return new String[] { " " + gap[0] + " ",
-                                  tall ? "" + shapeR + gap[1] + shapeL : " " + gap[1] + " ",
-                                  "" + shapeR + gap[2] + shapeL };
+        /// <summary>
+        /// Affiche le titre et le nom du joueur actuel.
+        /// </summary>
+        /// <param name="playerName">Nom du joueur actuel.</param>
+        static void DisplayTitle(String comment="") {
+            foreach (String line in title)
+                Println(line);
+            
+            if (comment != "")
+                Println(comment + "\n");
         }
 
         /// <summary>
@@ -213,10 +261,10 @@ namespace Quartzoto {
             // On parcour le plateau pour récupérer les affichage distinct des pieces présente (couleur et chaines de caractères).
             for (int i = 0; i < SIZE; i++)
                 for (int j = 0; j < SIZE; j++) {
-                    // S'il y a une pièce en selection, elle est 'placée' par dessus le plateau.
-                    if (highlighted.Length == 2 && highlighted[0] == i && highlighted[1] == j) {
+                    // S'il y a une pièce en selection, elle est dessinée par dessus le plateau (s'il n'y a pas de piece sur la même case).
+                    if (highlighted.Length == 2 && highlighted[0] == i && highlighted[1] == j && grid[i, j] == EMPTY) {
                         lines[i, j] = lineToPlace;
-                        colors[i, j] = (pieceToPlace & FLAG_IS_COL1) != 0 ? COLOR_SEL_1 : COLOR_SEL_2;
+                        colors[i, j] = (pieceToPlace & FLAG_IS_COL1) != 0 ? COLOR_1 : COLOR_2;
                     } else {
                         lines[i, j] = DetailPiece(grid[i, j]);
                         colors[i, j] = grid[i, j] == EMPTY ? MAIN_FG : (grid[i, j] & FLAG_IS_COL1) != 0 ? COLOR_1 : COLOR_2;
@@ -243,7 +291,7 @@ namespace Quartzoto {
 
                     for (int i = 0; i < SIZE; i++) {
                         Print(SEP_VE); // Affiche les séparateurs verticaux dans la couleur principale.
-                        Print(lines[i, j][k], TILE_BG, colors[i, j]);
+                        Print(lines[i, j][k], highlighted.Length == 2 && highlighted[0] == i && highlighted[1] == j ? SEL_BG : TILE_BG, colors[i, j]);
                     }
 
                     // S'il y a une pièce à placer elle est ajoutée 1 ligne par 1 ligne à côté du tableau.
@@ -276,7 +324,7 @@ namespace Quartzoto {
             for (int k = 1; k < SIZE + 1; Print(new String(' ', TILE_SIZE) + k++))
                 ;
 
-            Println();
+            Println("\n");
         }
 
         /// <summary>
@@ -287,8 +335,10 @@ namespace Quartzoto {
         /// <param name="pieceToPlace">Pièce à placer (elle est donc déjà dessinée dans `DisplayGrid`).</param>
         /// <param name="highlighted">Indice de la pièce en surbriance.</param>
         static void DisplayPiecesLeft(int pieceToPlace=EMPTY, int highlighted=-1) {
-            String[][] lines = new String[piecesLefts.Length][];
-            ConsoleColor[] colors = new ConsoleColor[piecesLefts.Length];
+            bool canQuarto = piecesLefts.Length < SIZE * SIZE;
+
+            String[][] lines = new String[canQuarto ? piecesLefts.Length + 1 : piecesLefts.Length][];
+            ConsoleColor[] colors = new ConsoleColor[lines.Length];
 
             // Récupère les affichages pour chaques pieces dans la list de pièces restantes (la pioche).
             for (int p = 0; p < piecesLefts.Length; p++) {
@@ -296,18 +346,20 @@ namespace Quartzoto {
                 colors[p] = (piecesLefts[p] & FLAG_IS_COL1) != 0 ? COLOR_1 : COLOR_2;
             }
 
-            // Si une pièces est surlignée, change sa couleur.
-            if (-1 < highlighted)
-                colors[highlighted] = (piecesLefts[highlighted] & FLAG_IS_COL1) != 0 ? COLOR_SEL_1 : COLOR_SEL_2;
+            if (canQuarto) {
+                lines[piecesLefts.Length] = DetailPiece(SIZE * SIZE);
+                colors[piecesLefts.Length] = MAIN_FG;
+            }
 
             // L'affichage découpe encore une fois chaque pièce de manière à afficher
             // l'intégralité d'une ligne de caractères avant de passer à la suivante.
             for (int k = 0; k < TILE_SIZE; k++) {
-                for (int p = 0; p < piecesLefts.Length; p++)
-                    if (piecesLefts[p] != pieceToPlace) {
+                for (int p = 0; p < lines.Length; p++)
+                    if (piecesLefts.Length - 1 < p || piecesLefts[p] != pieceToPlace) {
                         if (0 < p)
                             Print("  ");
-                        Print(lines[p][k], TILE_BG, colors[p]);
+                        // Si une pièces est surlignée, change sa couleur de fond.
+                        Print(lines[p][k], p == highlighted ? SEL_BG : TILE_BG, colors[p]);
                     }
                 Println();
             }
@@ -323,9 +375,8 @@ namespace Quartzoto {
         static void DisplayGame(int pieceToPlace=EMPTY, int selectedPiece=-1, params int[] selectedTile) {
             // Nettoie la console.
             Console.Clear();
-
             // Affiche le nom du joueur actuel.
-            Println("joueur : " + currentPlayer + "\n");
+            DisplayTitle("Joueur : " + currentPlayer);
             // Affiche le plateau.
             DisplayGrid(pieceToPlace, selectedTile);
             // Affiche la pioche.
@@ -366,14 +417,18 @@ namespace Quartzoto {
         }
 
         /// <summary>
-        /// Contient la boucle qui laisse le joueur choisie la pièce qu'il donne à son adversaire.
+        /// Contient la boucle qui laisse le joueur choisie la pièce qu'il donne à son adversaire ou s'il dit Quarto.
         /// </summary>
         /// <param name="lastPlacePosXY">Cordonée de la dernière pièce placée.</param>
         /// <returns>L'indice dans la pioche de la pièce choisie.</returns>
+        /// <remarks>Après le premier tour, la 'piece' Quarto apparait dans la liste des options de la pioche.</remarks>
         static int ChoosePiece(params int[] lastPlacePosXY) {
             ConsoleKey input = ConsoleKey.Clear;
             int cursor = piecesLefts.Length / 2;
-            
+            // Si on est après le premier tours (<=> la pioche ne contient plus les `SIZE * SIZE` pièces de base),
+            // on peut se déplacer sur l'option supplémentaire pour dire Quarto.
+            int edge = piecesLefts.Length < SIZE * SIZE ? piecesLefts.Length + 1 : piecesLefts.Length;
+
             DisplayGame(EMPTY, cursor, lastPlacePosXY);
 
             // Déplace le curseur selon les entrées clavier de l'utilisateur récupérées avec `ReadKey`.
@@ -381,13 +436,13 @@ namespace Quartzoto {
             while ((input = Console.ReadKey(true).Key) != ConsoleKey.Enter) {
 
                 // Ces test font en sorte que le curseur ne sorte pas de la pioche.
-                if (input == ConsoleKey.RightArrow && cursor < piecesLefts.Length - 1)
+                if ((input == ConsoleKey.RightArrow || input == ConsoleKey.DownArrow) && cursor < edge - 1)
                     DisplayGame(EMPTY, ++cursor, lastPlacePosXY); // Réactualisation de l'affichage.
 
-                else if (input == ConsoleKey.LeftArrow && 0 < cursor)
+                else if ((input == ConsoleKey.LeftArrow || input == ConsoleKey.UpArrow) && 0 < cursor)
                     DisplayGame(EMPTY, --cursor, lastPlacePosXY);
             }
-            
+
             return cursor;
         }
 
@@ -467,15 +522,6 @@ namespace Quartzoto {
         }
 
         /// <summary>
-        /// Permet d'éviter les 'Entrée à 4Hz' : sans, garder la touche `Enter` passe touts les menus très vite / instantanément.
-        /// </summary>
-        static void WaitEnterRelease() {
-            //while (Console.ReadKey().Key == ConsoleKey.Enter)
-            //    ;
-            System.Threading.Thread.Sleep(500);
-        }
-
-        /// <summary>
         /// Effectue une partie entre les deux joueurs.
         /// Si un des joueur s'appel "Ordinateur" (joueur 2 par défaut), il est jouer par l'ordinateur.
         /// </summary>
@@ -486,7 +532,8 @@ namespace Quartzoto {
         static String PlayGame(out int turnCounter, String player1, String player2 = "Ordinateur") {
             // Si un des joueurs s'appel "Ordinateur", il est remplacer par un ordinateur.
             String[] players = new String[] { player1, player2 };
-            int player = 0; // Le premier joueur est le joueur `player1` (d'indice 0).
+            // Le premier joueur est le joueur `player1` (d'indice 0 -- mais c'est peut-être `name2`! voir dans `Main`).
+            int player = 0;
 
             // Pièce en transit (donnée par un joueur au suivant).
             int storedPieceIndex = -1;
@@ -518,23 +565,35 @@ namespace Quartzoto {
                     // Test si c'est un coups gagnant.
                     victory = IsFinished(placePosXY); 
                 }
+                
+                // Affiche le plateau et la pioche.
+                if (currentPlayer != "Ordinateur")
+                    DisplayGame();
 
-                // Si la partie n'est pas finie, on passe à la selection de la pièce suivante.
-                if (!victory && turnCounter < SIZE * SIZE) {
-                    // Affiche le plateau et la pioche.
-                    if (currentPlayer != "Ordinateur")
-                        DisplayGame();
+                if (currentPlayer == "Ordinateur")
+                    storedPieceIndex = ComputerChoosePiece(threshold); // L'ordinateur trouve une pièce.
+                else
+                    storedPieceIndex = ChoosePiece(); // le joueur choisis une pièce.
 
-                    if (currentPlayer == "Ordinateur")
-                        storedPieceIndex = ComputerChoosePiece(threshold);// L'ordinateur trouve une pièce.
-                    else
-                        storedPieceIndex = ChoosePiece(); // le joueur choisis une pièce.
+                String theNameOfThePlayerThatSaidQuartoDuringThisTurn = currentPlayer;
+
+                // Si c'était un coup gagnant mais qu'il n'a pas choisis l'option Quarto
+                // (dernier élement de la liste des choix) alors il n'a pas gagner.
+                if (victory && storedPieceIndex != piecesLefts.Length)
+                    victory = false;
+
+                // S'il a choisis l'option Quarto mais qu'il n'y en avais pas,
+                // la victoire est attribuée à l'autre joueur.
+                if (!victory && storedPieceIndex == piecesLefts.Length) {
+                    currentPlayer = players[player == 0 ? 1 : 0];
+                    victory = true;
                 }
+
                 // Si la pertie est fini, il n'y a pas lieux de choisir de nouvelle pièce.
-                else {
+                if (victory) {
                     // Affiche le plateau final.
                     Console.Clear();
-                    Println("\n");
+                    DisplayTitle(theNameOfThePlayerThatSaidQuartoDuringThisTurn + " : \"Quarto!®\"");
                     DisplayGrid(EMPTY << SIZE);
                 }
 
@@ -642,15 +701,22 @@ namespace Quartzoto {
         }
 
         /// <summary>
-        /// Choix d'une pièce par l'ordinateur.
+        /// Choix d'une pièce ou de dire Quarto par l'ordinateur.
         /// </summary>
         /// <param name="randomThreshold">Seuil (en %) d'aléatoire (équivalent à un taux d'erreur).</param>
         /// <returns>L'indice dans la pioche de la pièce choisie.</returns>
         static int ComputerChoosePiece(int randomThreshold=100) {
             // Ordinateur en mode aléatoire.
             if (rng.Next(100) < randomThreshold)
-                // Retourne l'indice d'une case au hasard.
-                return rng.Next(piecesLefts.Length);
+                // Retourne l'indice d'une pièce au hasard.
+                return rng.Next(piecesLefts.Length < SIZE * SIZE ? piecesLefts.Length + 1 : piecesLefts.Length);
+
+            // S'il y a des pieces sur le plateau, il peut y avoir un Quarto.
+            if (piecesLefts.Length < SIZE * SIZE)
+                for (int i = 0; i < SIZE; i++)
+                    for (int j = 0; j < SIZE; j++)
+                        if (IsFinished(new int[] { i, j }))
+                            return piecesLefts.Length;
 
             //int[] shuffled = piecesLefts.OrderBy(e => rng.Next()).ToArray();
 
