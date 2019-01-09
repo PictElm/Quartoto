@@ -57,12 +57,10 @@ namespace Quartzoto {
         /// <li>Effectuer une partie</li>
         /// <li>Adapter la difficultée</li>
         /// <li>Demander si faire une nouvelle partie</li>
+        /// Le joueur commencant la première partie est selectionner aléatoirement,
+        /// pour chaque autre parties, le perdant commence.
         /// </summary>
-        /// <param name="args">
-        /// Arguments de la ligne de commande :
-        ///     [-j1 nom] pour choisir le nom du joueur
-        ///     [-j2 nom] pour avoir un deuxième joueur
-        /// </param>
+        /// <param name="args">Arguments de la ligne de commande (non utilisés).</param>
         static void Main(string[] args) {
             String name1 = "Tu", name2 = "Ordinateur";
 
@@ -74,7 +72,7 @@ namespace Quartzoto {
                 name2 = Console.ReadLine();
             }
 
-            // Choix aléatoire du premier joueur à commancer.
+            // Choix aléatoire du premier joueur à commencer.
             rng = new Random();
             if (0 < rng.Next(2)) {
                 String tmp = name1;
@@ -536,7 +534,7 @@ namespace Quartzoto {
                 else {
                     // Affiche le plateau final.
                     Console.Clear();
-                    Println("Joueur : " + currentPlayer + "\n");
+                    Println("\n");
                     DisplayGrid(EMPTY << SIZE);
                 }
 
