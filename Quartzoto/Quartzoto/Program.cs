@@ -226,10 +226,7 @@ namespace Quartzoto {
                 return r;
             }
 
-            String[] copy = new String[piecesTextures[piece].Length];
-            for (int k = 0; k < piecesTextures[piece].Length; copy[k] = "" + piecesTextures[piece][k++])
-                ;
-            return copy;
+            return piecesTextures[piece];
         }
 
         /// <summary>
