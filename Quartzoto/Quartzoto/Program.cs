@@ -419,14 +419,14 @@ namespace Quartzoto {
         /// <param name="lastPlacePosXY">Cordonée de la dernière pièce placée.</param>
         /// <returns>L'indice dans la pioche de la pièce choisie.</returns>
         /// <remarks>Après le premier tour, la 'piece' Quarto apparait dans la liste des options de la pioche.</remarks>
-        static int ChoosePiece(params int[] lastPlacePosXY) {
+        static int ChoosePiece() {
             ConsoleKey input = ConsoleKey.Clear;
             int cursor = piecesLefts.Length / 2;
             // Si on est après le premier tours (<=> la pioche ne contient plus les `SIZE * SIZE` pièces de base),
             // on peut se déplacer sur l'option supplémentaire pour dire Quarto.
             int edge = piecesLefts.Length < SIZE * SIZE ? piecesLefts.Length + 1 : piecesLefts.Length;
 
-            DisplayGame(EMPTY, cursor, lastPlacePosXY);
+            DisplayGame(EMPTY, cursor);
 
             // Déplace le curseur selon les entrées clavier de l'utilisateur récupérées avec `ReadKey`.
             // La boucle se termine lorsque l'utilisateur appui sur 'entrer'.
@@ -434,10 +434,10 @@ namespace Quartzoto {
 
                 // Ces test font en sorte que le curseur ne sorte pas de la pioche.
                 if ((input == ConsoleKey.RightArrow || input == ConsoleKey.DownArrow) && cursor < edge - 1)
-                    DisplayGame(EMPTY, ++cursor, lastPlacePosXY); // Réactualisation de l'affichage.
+                    DisplayGame(EMPTY, ++cursor); // Réactualisation de l'affichage.
 
                 else if ((input == ConsoleKey.LeftArrow || input == ConsoleKey.UpArrow) && 0 < cursor)
-                    DisplayGame(EMPTY, --cursor, lastPlacePosXY);
+                    DisplayGame(EMPTY, --cursor);
             }
 
             return cursor;
@@ -539,6 +539,9 @@ namespace Quartzoto {
             turnCounter = 0;
             bool victory = false;
 
+            // Si il y avais une victoire, pour les Quarto! rétroactifs.
+            bool wasQuarto = false;
+
             do {
                 // Actualise le nom du joueur.
                 currentPlayer = players[player];
@@ -557,10 +560,16 @@ namespace Quartzoto {
                         placePosXY = ChooseTile(piecesLefts[storedPieceIndex]); // Le joueur choisis une case.
 
                     // Place la pièce sur le plateau (la retire de la pile).
-                    Place(storedPieceIndex, placePosXY); 
+                    Place(storedPieceIndex, placePosXY);
 
-                    // Test si c'est un coups gagnant.
-                    victory = IsFinished(placePosXY); 
+                    // Test si c'est un coups gagnant
+                    bool isQuarto = IsFinished(placePosXY);
+
+                    // Vraie si le coup est gagniant ou si le coup du joueur précedent l'était.
+                    victory = isQuarto | wasQuarto;
+
+                    // Stock la victoire : si il y a Quarto! ici et que le joueur ne le signale pas, le suivant peut le dire.
+                    wasQuarto = isQuarto;
                 }
                 
                 // Affiche le plateau et la pioche.
