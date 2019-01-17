@@ -64,7 +64,7 @@ namespace Quartzoto {
 
         /// <summary>
         /// <li>Effectuer une partie</li>
-        /// <li>Adapter la difficultée</li>
+        /// <li>Adapter la difficulté</li>
         /// <li>Demander si faire une nouvelle partie</li>
         /// Le joueur commencant la première partie est selectionné aléatoirement,
         /// pour chaque autre partie, le perdant commence.
