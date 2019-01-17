@@ -610,7 +610,7 @@ namespace Quartzoto
                     victory = isQuarto | wasQuarto;
 
                     // Stocke la victoire : si il y a Quarto! ici et que le joueur ne le signale pas, le suivant peut le dire.
-                    wasQuarto = victory;
+                    wasQuarto = isQuarto;
                   
                 }
 
