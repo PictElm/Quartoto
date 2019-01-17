@@ -39,7 +39,7 @@ namespace Quartzoto
         // Fichier de configuration.
         const String FILE_CONFIG = "config.txt";
         // Fichier de textures
-        const String FILE_TEXTURES = "pieces.txt";
+        const String FILE_PIECES = "pieces.txt";
 
         // Séparateur utilisés pour les contours du plateaux (box drawing characters).
         const char SEP_HZ = '─';
@@ -156,7 +156,7 @@ namespace Quartzoto
             piecesTextures = new String[SIZE * SIZE + 1][];
             int k = 0;
             // Chaque ligne du fichier contient une pièce découpée en tranches séparées par des virgules.
-            foreach (String line in File.ReadAllLines(FILE_TEXTURES))
+            foreach (String line in File.ReadAllLines(FILE_PIECES))
                 piecesTextures[k++] = line.Split(',');
 
             int width = SIZE * SIZE * (TILE_SIZE + 2);
@@ -564,7 +564,7 @@ namespace Quartzoto
         /// <param name="player1">Nom du joueur 1.</param>
         /// <param name="player2">Nom du joueur 2, "Ordinateur" par défaut.</param>
         /// <returns>Le nom du joueur qui l'emporte.</returns>
-        static String PlayGame(out int turnCounter, String player1, String player2 = "Ordinateur")
+        static String PlayGame(out int turnCounter, String player1, String player2)
         {
             // Si un des joueurs s'appelle "Ordinateur", il est remplacé par un ordinateur.
             String[] players = new String[] { player1, player2 };
