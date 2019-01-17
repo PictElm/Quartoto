@@ -9,7 +9,7 @@ namespace Quartzoto {
 
     class Program {
 
-        // Le jeu s'adapte à d'autre taille (les puissances de 2 ;  2x2, 4x4, 8x8, ...)
+        // Le jeu s'adapte à d'autres tailles (les puissances de 2 ;  2x2, 4x4, 8x8, ...)
         static int SIZE = 4;
         // Taille d'une pièce et donc également de la case qu'elle occupe.
         static int TILE_SIZE = 3;
